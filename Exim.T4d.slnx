@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/EximBank.Abstractions/EximBank.Abstractions.csproj" Id="0ebb2761-503f-4c04-840d-2bad11b99e2c" />
+    <Project Path="src/BuildingBlocks/EximBank.Contracts/EximBank.Contracts.csproj" Id="ee5c202c-8681-4e52-b236-994731fe504b" />
+    <Project Path="src/BuildingBlocks/EximBank.Infrastructure/EximBank.Infrastructure.csproj" Id="014aba58-055c-4115-b616-4da017a8ea8c" />
+    <Project Path="src/BuildingBlocks/EximBank.SharedKernel/EximBank.SharedKernel.csproj" Id="ee112100-3f2b-4094-8bfe-fcb35e89a396" />
+  </Folder>
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/EximT4D.ApiHost/EximT4D.ApiHost.csproj" Id="d82a7e3a-c9f4-4575-afd0-abfcd04ea42e" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Labeling/" />
+  <Folder Name="/src/Modules/Labeling/01-Domain/">
+    <Project Path="src/Modules/Labeling/Labeling.Domain/Labeling.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Labeling/02-Application/">
+    <Project Path="src/Modules/Labeling/Labeling.Application/Labeling.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Labeling/03-Infrastructure/">
+    <Project Path="src/Modules/Labeling/Labeling.Infrastructure/Labeling.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+
+  <Folder Name="/tests/10-ArchTests/">
+    <Project Path="tests/Exim.T4d.ArchTests/Exim.T4d.ArchTests.csproj" />
+  </Folder>
+</Solution>
