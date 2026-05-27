@@ -36,8 +36,11 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, HttpContextCurrentUserService>();
 
         services.AddScoped<IReportQueryExecutor, NotImplementedReportQueryExecutor>();
-        services.AddScoped<IReportRenderer, NotImplementedReportRenderer>();
+        services.AddScoped<IReportRenderer, HtmlReportRenderer>();
         services.AddScoped<IReportOutputStorage, NotImplementedReportStorageService>();
+        services.AddSingleton<IHtmlToPdfRenderer, PlaywrightHtmlToPdfRenderer>();
+        services.Configure<HtmlRendererOptions>(
+            configuration.GetSection(HtmlRendererOptions.SectionName));
 
         return services;
     }

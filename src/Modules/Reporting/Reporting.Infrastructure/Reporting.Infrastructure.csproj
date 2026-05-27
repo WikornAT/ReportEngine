@@ -10,11 +10,15 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Microsoft.Playwright" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Reporting.Application\Reporting.Application.csproj" />
+    <ProjectReference Include="..\Reporting.Domain\Reporting.Domain.csproj" />
+    <ProjectReference Include="..\..\Templates\Templates.Application\Templates.Application.csproj" />
+    <ProjectReference Include="..\..\Templates\Templates.Domain\Templates.Domain.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Abstractions\Exim.ReportEngine.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Infrastructure\Exim.ReportEngine.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.SharedKernel\Exim.ReportEngine.SharedKernel.csproj" />

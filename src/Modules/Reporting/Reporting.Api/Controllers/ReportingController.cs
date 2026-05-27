@@ -7,6 +7,7 @@ using Reporting.Api.Models;
 using Reporting.Application.Features.ReportDefinitions.Activate;
 using Reporting.Application.Features.ReportDefinitions.AddDataSource;
 using Reporting.Application.Features.ReportDefinitions.AddParameter;
+using Reporting.Application.Features.ReportDefinitions.AssignTemplate;
 using Reporting.Application.Features.ReportDefinitions.Create;
 using Reporting.Application.Features.ReportDefinitions.Deactivate;
 using Reporting.Application.Features.ReportDefinitions.GetById;
@@ -107,6 +108,20 @@ public sealed class ReportingController : ControllerBase
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new DeactivateReportDefinitionCommand(id), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result);
+    }
+
+    /// <summary>Assigns a template from the Templates module to this report definition.</summary>
+    [HttpPost("report-definitions/{id:guid}/assign-template")]
+    public async Task<IActionResult> AssignTemplate(
+        Guid id,
+        [FromBody] AssignTemplateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new AssignTemplateCommand(id, request.TemplateId, request.TemplatePath),
+            cancellationToken);
+
         return result.IsSuccess ? Ok(result.Value) : Problem(result);
     }
 

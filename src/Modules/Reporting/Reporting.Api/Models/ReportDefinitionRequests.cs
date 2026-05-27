@@ -34,3 +34,8 @@ public sealed record AddReportParameterRequest(
     int SortOrder,
     bool IsVisible,
     string? Description);
+
+/// <summary>Request body for POST /api/reporting/report-definitions/{id}/assign-template</summary>
+public sealed record AssignTemplateRequest(
+    Guid TemplateId,
+    string TemplatePath);

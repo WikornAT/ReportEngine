@@ -1,6 +1,7 @@
 using Labeling.Application;
 using Labeling.Infrastructure;
 using Reporting.Api;
+using Templates.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers — load from the host assembly AND all module assemblies
 builder.Services
     .AddControllers()
-    .AddApplicationPart(typeof(Reporting.Api.Controllers.ReportingController).Assembly);
+    .AddApplicationPart(typeof(Reporting.Api.Controllers.ReportingController).Assembly)
+    .AddApplicationPart(typeof(Templates.Api.Controllers.TemplatesController).Assembly);
 
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
@@ -22,6 +24,9 @@ builder.Services.AddLabelingApplication();
 
 // ── Reporting module ──────────────────────────────────────────────────────────
 builder.Services.AddReportingApi(builder.Configuration);
+
+// ── Templates module ──────────────────────────────────────────────────────────
+builder.Services.AddTemplatesApi(builder.Configuration);
 
 var app = builder.Build();
 

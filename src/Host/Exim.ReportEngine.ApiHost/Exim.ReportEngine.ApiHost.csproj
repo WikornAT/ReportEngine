@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\Modules\Labeling\Labeling.Application\Labeling.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Labeling\Labeling.Infrastructure\Labeling.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Reporting\Reporting.Api\Reporting.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Templates\Templates.Api\Templates.Api.csproj" />
   </ItemGroup>
 
 </Project>

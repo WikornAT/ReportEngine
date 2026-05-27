@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" />
   </ItemGroup>
 
@@ -14,6 +15,7 @@
     <ProjectReference Include="..\Templates.Application\Templates.Application.csproj" />
     <ProjectReference Include="..\Templates.Infrastructure\Templates.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Contracts\Exim.ReportEngine.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.SharedKernel\Exim.ReportEngine.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>
