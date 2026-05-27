@@ -1,6 +1,6 @@
-using GuaranteeDebtEntity = Exim.T4d.Labeling.Domain.GuaranteeDebt.GuaranteeDebt;
+using GuaranteeDebtEntity = Labeling.Domain.GuaranteeDebt.GuaranteeDebt;
 
-namespace Exim.T4d.Labeling.Domain.GuaranteeInfo;
+namespace Labeling.Domain.GuaranteeInfo;
 
 /// <summary>
 /// Represents a guarantee letter record sourced from the legacy guarantee_info table.

@@ -1,6 +1,6 @@
-using EximBank.Abstractions.Repositories;
+using Exim.ReportEngine.Abstractions.Repositories;
 
-namespace Exim.T4d.Labeling.Domain.GuaranteeInfo;
+namespace Labeling.Domain.GuaranteeInfo;
 
 /// <summary>
 /// Domain-owned repository contract for GuaranteeInfo.

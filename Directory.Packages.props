@@ -26,6 +26,8 @@
     <!-- ===================================================== -->
     <!-- Microsoft Extensions                                  -->
     <!-- ===================================================== -->
+	<PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.10" />
+	<PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.2.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
@@ -38,6 +40,7 @@
     <!-- ===================================================== -->
     <!-- Security / Identity / Tokens                          -->
     <!-- ===================================================== -->
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />

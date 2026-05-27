@@ -1,4 +1,4 @@
-using Exim.T4d.Labeling.Domain.GuaranteeInfo;
+using Labeling.Domain.GuaranteeInfo;
 using Labeling.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

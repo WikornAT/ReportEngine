@@ -1,4 +1,4 @@
-namespace Exim.T4d.Labeling.Application.GuaranteeInfo;
+namespace Labeling.Application.GuaranteeInfo;
 
 /// <summary>
 /// Request model for updating the general fields of an existing GuaranteeInfo record.

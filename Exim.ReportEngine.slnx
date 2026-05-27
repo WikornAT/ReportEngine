@@ -1,0 +1,130 @@
+<Solution Format="Scaffold.Script.Manifest.v1">
+  <Name>Exim.ReportEngine</Name>
+  <GeneratedAtUtc>2026-05-26T04:16:55.6620798Z</GeneratedAtUtc>
+  <Projects>
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Abstractions/Exim.ReportEngine.Abstractions.csproj" />
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Contracts/Exim.ReportEngine.Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Infrastructure/Exim.ReportEngine.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.SharedKernel/Exim.ReportEngine.SharedKernel.csproj" />
+    <Project Path="src/Host/Exim.ReportEngine.ApiHost/Exim.ReportEngine.ApiHost.csproj" />
+    <Project Path="src/Modules/Dashboard/Dashboard.Api/Dashboard.Api.csproj" />
+    <Project Path="src/Modules/Dashboard/Dashboard.Application/Dashboard.Application.csproj" />
+    <Project Path="src/Modules/Dashboard/Dashboard.Domain/Dashboard.Domain.csproj" />
+    <Project Path="src/Modules/Dashboard/Dashboard.Infrastructure/Dashboard.Infrastructure.csproj" />
+    <Project Path="src/Modules/Designer/Designer.Api/Designer.Api.csproj" />
+    <Project Path="src/Modules/Designer/Designer.Application/Designer.Application.csproj" />
+    <Project Path="src/Modules/Designer/Designer.Domain/Designer.Domain.csproj" />
+    <Project Path="src/Modules/Designer/Designer.Infrastructure/Designer.Infrastructure.csproj" />
+    <Project Path="src/Modules/Labeling/Labeling.Application/Labeling.Application.csproj" />
+    <Project Path="src/Modules/Labeling/Labeling.Domain/Labeling.Domain.csproj" />
+    <Project Path="src/Modules/Labeling/Labeling.Infrastructure/Labeling.Infrastructure.csproj" />
+    <Project Path="src/Modules/Printing/Printing.Api/Printing.Api.csproj" />
+    <Project Path="src/Modules/Printing/Printing.Application/Printing.Application.csproj" />
+    <Project Path="src/Modules/Printing/Printing.Domain/Printing.Domain.csproj" />
+    <Project Path="src/Modules/Printing/Printing.Infrastructure/Printing.Infrastructure.csproj" />
+    <Project Path="src/Modules/Reporting/Reporting.Api/Reporting.Api.csproj" />
+    <Project Path="src/Modules/Reporting/Reporting.Application/Reporting.Application.csproj" />
+    <Project Path="src/Modules/Reporting/Reporting.Domain/Reporting.Domain.csproj" />
+    <Project Path="src/Modules/Reporting/Reporting.Infrastructure/Reporting.Infrastructure.csproj" />
+    <Project Path="src/Modules/Scheduling/Scheduling.Api/Scheduling.Api.csproj" />
+    <Project Path="src/Modules/Scheduling/Scheduling.Application/Scheduling.Application.csproj" />
+    <Project Path="src/Modules/Scheduling/Scheduling.Domain/Scheduling.Domain.csproj" />
+    <Project Path="src/Modules/Scheduling/Scheduling.Infrastructure/Scheduling.Infrastructure.csproj" />
+    <Project Path="src/Modules/Templates/Templates.Api/Templates.Api.csproj" />
+    <Project Path="src/Modules/Templates/Templates.Application/Templates.Application.csproj" />
+    <Project Path="src/Modules/Templates/Templates.Domain/Templates.Domain.csproj" />
+    <Project Path="src/Modules/Templates/Templates.Infrastructure/Templates.Infrastructure.csproj" />
+    <Project Path="tests/Exim.ReportEngine.ArchTests/Exim.ReportEngine.ArchTests.csproj" />
+    <Project Path="tests/Modules/Dashboard/Dashboard.Application.UnitTests/Dashboard.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Dashboard/Dashboard.Domain.UnitTests/Dashboard.Domain.UnitTests.csproj" />
+    <Project Path="tests/Modules/Designer/Designer.Application.UnitTests/Designer.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Designer/Designer.Domain.UnitTests/Designer.Domain.UnitTests.csproj" />
+    <Project Path="tests/Modules/Printing/Printing.Application.UnitTests/Printing.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Printing/Printing.Domain.UnitTests/Printing.Domain.UnitTests.csproj" />
+    <Project Path="tests/Modules/Reporting/Reporting.Application.UnitTests/Reporting.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Reporting/Reporting.Domain.UnitTests/Reporting.Domain.UnitTests.csproj" />
+    <Project Path="tests/Modules/Scheduling/Scheduling.Application.UnitTests/Scheduling.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Scheduling/Scheduling.Domain.UnitTests/Scheduling.Domain.UnitTests.csproj" />
+    <Project Path="tests/Modules/Templates/Templates.Application.UnitTests/Templates.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Templates/Templates.Domain.UnitTests/Templates.Domain.UnitTests.csproj" />
+  </Projects>
+  <Folder Name="/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Abstractions/Exim.ReportEngine.Abstractions.csproj" />
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Contracts/Exim.ReportEngine.Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Infrastructure/Exim.ReportEngine.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/Exim.ReportEngine.SharedKernel/Exim.ReportEngine.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/Hosts/">
+    <Project Path="src/Host/Exim.ReportEngine.ApiHost/Exim.ReportEngine.ApiHost.csproj" />
+    <Project Path="src/Host/Exim.ReportEngine.WorkerHost/Exim.ReportEngine.WorkerHost.csproj" Id="130d34cf-7999-4f53-a34d-f4a8297b8a7a" />
+  </Folder>
+  <Folder Name="/Modules/" />
+  <Folder Name="/Modules/Dashboard/">
+    <Project Path="src/Modules/Dashboard/Dashboard.Api/Dashboard.Api.csproj" />
+    <Project Path="src/Modules/Dashboard/Dashboard.Application/Dashboard.Application.csproj" />
+    <Project Path="src/Modules/Dashboard/Dashboard.Domain/Dashboard.Domain.csproj" />
+    <Project Path="src/Modules/Dashboard/Dashboard.Infrastructure/Dashboard.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Designer/">
+    <Project Path="src/Modules/Designer/Designer.Api/Designer.Api.csproj" />
+    <Project Path="src/Modules/Designer/Designer.Application/Designer.Application.csproj" />
+    <Project Path="src/Modules/Designer/Designer.Domain/Designer.Domain.csproj" />
+    <Project Path="src/Modules/Designer/Designer.Infrastructure/Designer.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Labeling/">
+    <Project Path="src/Modules/Labeling/Labeling.Application/Labeling.Application.csproj" />
+    <Project Path="src/Modules/Labeling/Labeling.Domain/Labeling.Domain.csproj" />
+    <Project Path="src/Modules/Labeling/Labeling.Infrastructure/Labeling.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Printing/">
+    <Project Path="src/Modules/Printing/Printing.Api/Printing.Api.csproj" />
+    <Project Path="src/Modules/Printing/Printing.Application/Printing.Application.csproj" />
+    <Project Path="src/Modules/Printing/Printing.Domain/Printing.Domain.csproj" />
+    <Project Path="src/Modules/Printing/Printing.Infrastructure/Printing.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Reporting/">
+    <Project Path="src/Modules/Reporting/Reporting.Api/Reporting.Api.csproj" />
+    <Project Path="src/Modules/Reporting/Reporting.Application/Reporting.Application.csproj" />
+    <Project Path="src/Modules/Reporting/Reporting.Domain/Reporting.Domain.csproj" />
+    <Project Path="src/Modules/Reporting/Reporting.Infrastructure/Reporting.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Scheduling/">
+    <Project Path="src/Modules/Scheduling/Scheduling.Api/Scheduling.Api.csproj" />
+    <Project Path="src/Modules/Scheduling/Scheduling.Application/Scheduling.Application.csproj" />
+    <Project Path="src/Modules/Scheduling/Scheduling.Domain/Scheduling.Domain.csproj" />
+    <Project Path="src/Modules/Scheduling/Scheduling.Infrastructure/Scheduling.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Templates/">
+    <Project Path="src/Modules/Templates/Templates.Api/Templates.Api.csproj" />
+    <Project Path="src/Modules/Templates/Templates.Application/Templates.Application.csproj" />
+    <Project Path="src/Modules/Templates/Templates.Domain/Templates.Domain.csproj" />
+    <Project Path="src/Modules/Templates/Templates.Infrastructure/Templates.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Shared/" />
+  <Folder Name="/Tests/" />
+  <Folder Name="/Tests/Modules/" />
+  <Folder Name="/Tests/Modules/Dashboard/">
+    <Project Path="tests/Modules/Dashboard/Dashboard.Application.UnitTests/Dashboard.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Dashboard/Dashboard.Domain.UnitTests/Dashboard.Domain.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Modules/Designer/">
+    <Project Path="tests/Modules/Designer/Designer.Application.UnitTests/Designer.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Designer/Designer.Domain.UnitTests/Designer.Domain.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Modules/Printing/">
+    <Project Path="tests/Modules/Printing/Printing.Application.UnitTests/Printing.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Printing/Printing.Domain.UnitTests/Printing.Domain.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Modules/Reporting/">
+    <Project Path="tests/Modules/Reporting/Reporting.Application.UnitTests/Reporting.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Reporting/Reporting.Domain.UnitTests/Reporting.Domain.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Modules/Scheduling/">
+    <Project Path="tests/Modules/Scheduling/Scheduling.Application.UnitTests/Scheduling.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Scheduling/Scheduling.Domain.UnitTests/Scheduling.Domain.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Modules/Templates/">
+    <Project Path="tests/Modules/Templates/Templates.Application.UnitTests/Templates.Application.UnitTests.csproj" />
+    <Project Path="tests/Modules/Templates/Templates.Domain.UnitTests/Templates.Domain.UnitTests.csproj" />
+  </Folder>
+</Solution>

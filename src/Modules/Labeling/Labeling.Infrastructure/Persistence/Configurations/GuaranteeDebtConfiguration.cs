@@ -1,4 +1,4 @@
-using Exim.T4d.Labeling.Domain.GuaranteeDebt;
+using Labeling.Domain.GuaranteeDebt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

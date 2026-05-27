@@ -1,7 +1,7 @@
-using Exim.T4d.Labeling.Application.GuaranteeInfo;
+using Labeling.Application.GuaranteeInfo;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Exim.T4d.Labeling.Application;
+namespace Labeling.Application;
 
 /// <summary>
 /// Registers all Labeling module application services into the DI container.

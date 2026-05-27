@@ -1,7 +1,7 @@
-using Exim.T4d.Labeling.Domain.GuaranteeInfo;
+using Labeling.Domain.GuaranteeInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using GuaranteeDebtEntity = Exim.T4d.Labeling.Domain.GuaranteeDebt.GuaranteeDebt;
+using GuaranteeDebtEntity = Labeling.Domain.GuaranteeDebt.GuaranteeDebt;
 
 namespace Labeling.Infrastructure.Persistence.Configurations;
 

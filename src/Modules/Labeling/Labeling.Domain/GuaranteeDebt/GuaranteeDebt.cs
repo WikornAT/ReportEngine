@@ -1,4 +1,4 @@
-namespace Exim.T4d.Labeling.Domain.GuaranteeDebt;
+namespace Labeling.Domain.GuaranteeDebt;
 
 /// <summary>
 /// Represents a single debt line associated with a guarantee letter,

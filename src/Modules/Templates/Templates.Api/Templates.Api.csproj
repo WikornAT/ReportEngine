@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Templates.Application\Templates.Application.csproj" />
+    <ProjectReference Include="..\Templates.Infrastructure\Templates.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Contracts\Exim.ReportEngine.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

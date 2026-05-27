@@ -1,4 +1,4 @@
-namespace Exim.T4d.Labeling.Application.GuaranteeInfo;
+namespace Labeling.Application.GuaranteeInfo;
 
 /// <summary>
 /// Application service contract for GuaranteeInfo CRUD operations.
