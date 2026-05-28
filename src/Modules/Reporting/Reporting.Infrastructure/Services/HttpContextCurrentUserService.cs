@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 
 namespace Reporting.Infrastructure.Services;
 

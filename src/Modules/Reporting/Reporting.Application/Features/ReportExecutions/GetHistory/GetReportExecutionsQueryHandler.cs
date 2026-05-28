@@ -3,7 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 using Reporting.Application.Contracts;
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 using Reporting.Application.DTOs;
 using Reporting.Application.Mapping;
 using Reporting.Application.Features.ReportDefinitions.GetList;

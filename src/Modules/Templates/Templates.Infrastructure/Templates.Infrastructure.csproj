@@ -9,14 +9,18 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Templates.Application\Templates.Application.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Abstractions\Exim.ReportEngine.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Infrastructure\Exim.ReportEngine.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.SharedKernel\Exim.ReportEngine.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Abstractions\ReportEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Infrastructure\ReportEngine.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.SharedKernel\ReportEngine.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>
