@@ -16,7 +16,7 @@ internal sealed class TemplatesDbContextDesignTimeFactory : IDesignTimeDbContext
 
         string connectionString =
             config.GetConnectionString("TemplatesDb")
-            ?? "Host=localhost;Port=5432;Database=TemplatesDb;Username=dev;Password=dev@2025";
+            ?? "Host=192.168.14.94;Port=5432;Database=ReportingDb;Username=dev;Password=dev@2025";
 
         DbContextOptionsBuilder<TemplatesDbContext> optionsBuilder = new();
         optionsBuilder.UseNpgsql(

@@ -42,6 +42,8 @@ public static class DependencyInjection
         services.Configure<HtmlRendererOptions>(
             configuration.GetSection(HtmlRendererOptions.SectionName));
 
+        services.AddScoped<ITemplateVerifier, TemplateVerifier>();
+
         return services;
     }
 }

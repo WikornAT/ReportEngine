@@ -11,11 +11,6 @@ namespace Reporting.Application.Features.ReportDefinitions.AssignTemplate;
 /// </summary>
 /// <param name="ReportDefinitionId">The report definition to update.</param>
 /// <param name="TemplateId">The id of the <c>ReportTemplate</c> to assign.</param>
-/// <param name="TemplatePath">
-/// Optional storage path or descriptive key for the template (e.g., a relative URL or
-/// a display name). Persisted on the definition for reference; not used by the HTML renderer.
-/// </param>
 public sealed record AssignTemplateCommand(
     Guid ReportDefinitionId,
-    Guid TemplateId,
-    string TemplatePath) : IRequest<Result<ReportDefinitionDto>>;
+    Guid TemplateId) : IRequest<Result<ReportDefinitionDto>>;

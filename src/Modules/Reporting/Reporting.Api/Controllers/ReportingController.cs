@@ -11,8 +11,12 @@ using Reporting.Application.Features.ReportDefinitions.AssignTemplate;
 using Reporting.Application.Features.ReportDefinitions.Create;
 using Reporting.Application.Features.ReportDefinitions.Deactivate;
 using Reporting.Application.Features.ReportDefinitions.GetById;
+using Reporting.Application.Features.ReportDefinitions.GetDataSourceById;
+using Reporting.Application.Features.ReportDefinitions.GetDataSources;
 using Reporting.Application.Features.ReportDefinitions.GetList;
+using Reporting.Application.Features.ReportDefinitions.RemoveDataSource;
 using Reporting.Application.Features.ReportDefinitions.Update;
+using Reporting.Application.Features.ReportDefinitions.UpdateDataSource;
 using Reporting.Application.Features.ReportExecutions.Execute;
 using Reporting.Application.Features.ReportExecutions.GetHistory;
 using Reporting.Domain.Enums;
@@ -119,7 +123,7 @@ public sealed class ReportingController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(
-            new AssignTemplateCommand(id, request.TemplateId, request.TemplatePath),
+            new AssignTemplateCommand(id, request.TemplateId),
             cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : Problem(result);
@@ -142,7 +146,63 @@ public sealed class ReportingController : ControllerBase
                 request.SortOrder),
             cancellationToken);
 
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetDataSourceById), new { id, dataSourceId = result.Value.Id }, result.Value)
+            : Problem(result);
+    }
+
+    /// <summary>Returns all data sources for a report definition, ordered by SortOrder.</summary>
+    [HttpGet("report-definitions/{id:guid}/data-sources")]
+    public async Task<IActionResult> GetDataSources(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetReportDataSourcesQuery(id), cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : Problem(result);
+    }
+
+    /// <summary>Returns a single data source by id.</summary>
+    [HttpGet("report-definitions/{id:guid}/data-sources/{dataSourceId:guid}")]
+    public async Task<IActionResult> GetDataSourceById(
+        Guid id,
+        Guid dataSourceId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetReportDataSourceByIdQuery(id, dataSourceId), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result);
+    }
+
+    /// <summary>Updates all mutable fields of an existing data source.</summary>
+    [HttpPut("report-definitions/{id:guid}/data-sources/{dataSourceId:guid}")]
+    public async Task<IActionResult> UpdateDataSource(
+        Guid id,
+        Guid dataSourceId,
+        [FromBody] UpdateReportDataSourceRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new UpdateReportDataSourceCommand(
+                id,
+                dataSourceId,
+                request.Name,
+                request.DataSourceType,
+                request.ConnectionStringName,
+                request.QueryText,
+                request.SortOrder),
+            cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : Problem(result);
+    }
+
+    /// <summary>Removes a data source from a report definition.</summary>
+    [HttpDelete("report-definitions/{id:guid}/data-sources/{dataSourceId:guid}")]
+    public async Task<IActionResult> RemoveDataSource(
+        Guid id,
+        Guid dataSourceId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new RemoveReportDataSourceCommand(id, dataSourceId), cancellationToken);
+        return result.IsSuccess ? NoContent() : Problem(result);
     }
 
     /// <summary>Declares a new input parameter on an existing report definition.</summary>

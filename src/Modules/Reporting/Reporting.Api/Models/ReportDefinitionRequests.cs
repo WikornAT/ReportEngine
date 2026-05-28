@@ -24,6 +24,14 @@ public sealed record AddReportDataSourceRequest(
     string QueryText,
     int SortOrder);
 
+/// <summary>Request body for PUT /api/reporting/report-definitions/{id}/data-sources/{dataSourceId}</summary>
+public sealed record UpdateReportDataSourceRequest(
+    string Name,
+    ReportDataSourceType DataSourceType,
+    string ConnectionStringName,
+    string QueryText,
+    int SortOrder);
+
 /// <summary>Request body for POST /api/reporting/report-definitions/{id}/parameters</summary>
 public sealed record AddReportParameterRequest(
     string Name,
@@ -39,3 +47,4 @@ public sealed record AddReportParameterRequest(
 public sealed record AssignTemplateRequest(
     Guid TemplateId,
     string TemplatePath);
+

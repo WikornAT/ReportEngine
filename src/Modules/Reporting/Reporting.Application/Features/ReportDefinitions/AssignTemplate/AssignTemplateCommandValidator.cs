@@ -11,9 +11,5 @@ internal sealed class AssignTemplateCommandValidator : AbstractValidator<AssignT
 
         RuleFor(x => x.TemplateId)
             .NotEmpty();
-
-        RuleFor(x => x.TemplatePath)
-            .NotEmpty()
-            .MaximumLength(500);
     }
 }

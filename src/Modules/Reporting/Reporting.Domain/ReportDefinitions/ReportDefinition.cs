@@ -475,6 +475,46 @@ public sealed class ReportDefinition : IAuditableEntity
     }
 
     /// <summary>
+    /// Updates all mutable fields of an existing data source in a single operation.
+    /// </summary>
+    /// <param name="dataSourceId">Id of the data source to update.</param>
+    /// <param name="name">New logical name (must remain unique within this report, non-empty, max 100 chars).</param>
+    /// <param name="dataSourceType">New connection technology type.</param>
+    /// <param name="connectionStringName">New named connection string reference.</param>
+    /// <param name="queryText">New SQL, SP name, endpoint, or selector.</param>
+    /// <param name="sortOrder">New display order.</param>
+    /// <param name="modifiedBy">Identity performing the change.</param>
+    /// <exception cref="ReportingDomainException">
+    /// Thrown when the report is Archived, the data source is not found, or a different data source
+    /// with the same <paramref name="name"/> already exists on this report.
+    /// </exception>
+    public void UpdateDataSource(
+        Guid dataSourceId,
+        string name,
+        ReportDataSourceType dataSourceType,
+        string connectionStringName,
+        string queryText,
+        int sortOrder,
+        string modifiedBy)
+    {
+        EnsureNotArchived();
+        Guard.NotNullOrWhiteSpace(modifiedBy, nameof(modifiedBy));
+
+        ReportDataSource dataSource = FindDataSourceOrThrow(dataSourceId);
+
+        if (_dataSources.Exists(ds =>
+                ds.Id != dataSourceId &&
+                ds.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ReportingDomainException(
+                $"A data source named '{name}' already exists on this report definition.");
+        }
+
+        dataSource.Update(name, dataSourceType, connectionStringName, queryText, sortOrder);
+        Touch(modifiedBy);
+    }
+
+    /// <summary>
     /// Removes a data source from this report definition.
     /// </summary>
     /// <param name="dataSourceId">Id of the data source to remove.</param>

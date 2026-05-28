@@ -149,4 +149,36 @@ public sealed class ReportDataSource
         Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
         ConnectionStringName = connectionStringName;
     }
+
+    /// <summary>
+    /// Updates all mutable fields of this data source in a single atomic operation.
+    /// </summary>
+    /// <param name="name">New logical name (non-empty, max 100 chars).</param>
+    /// <param name="dataSourceType">New connection/query technology type.</param>
+    /// <param name="connectionStringName">New named connection string reference (non-empty).</param>
+    /// <param name="queryText">New query, SP name, or endpoint (non-empty).</param>
+    /// <param name="sortOrder">New display order.</param>
+    internal void Update(
+        string name,
+        ReportDataSourceType dataSourceType,
+        string connectionStringName,
+        string queryText,
+        int sortOrder)
+    {
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
+        Guard.NotNullOrWhiteSpace(queryText, nameof(queryText));
+        Guard.DefinedEnum(dataSourceType, nameof(dataSourceType));
+
+        if (name.Length > 100)
+        {
+            throw new ReportingDomainException($"'{nameof(name)}' must not exceed 100 characters.");
+        }
+
+        Name = name;
+        DataSourceType = dataSourceType;
+        ConnectionStringName = connectionStringName;
+        QueryText = queryText;
+        SortOrder = sortOrder;
+    }
 }

@@ -393,6 +393,10 @@ x86/
     <PackageVersion Include="Bogus" Version="36.1.1" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.18.0.131500" />
+    <!-- ===================================================== -->
+    <!-- Scriban                                               -->
+    <!-- ===================================================== -->
+    <PackageVersion Include="Scriban" Version="7.2.1" />	
   </ItemGroup>
 </Project>
 '@

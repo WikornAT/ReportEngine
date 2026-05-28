@@ -8,6 +8,9 @@ using Microsoft.Extensions.Options;
 using Reporting.Application.Contracts;
 using Reporting.Domain.Enums;
 using Reporting.Domain.ReportDefinitions;
+
+using Scriban;
+using Scriban.Runtime;
 using Templates.Application.Contracts;
 using Templates.Domain.Enums;
 using Templates.Domain.ReportTemplates;
@@ -148,10 +151,9 @@ internal sealed class HtmlReportRenderer : IReportRenderer
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Merges data JSON into the HTML template by replacing <c>{{key}}</c> tokens with
-    /// their corresponding values from the top-level JSON object.
-    /// Nested datasets (arrays) are substituted as JSON-stringified blocks for now;
-    /// advanced table row repetition requires a template engine such as Scriban.
+    /// Merges data JSON into the HTML template using Scriban.
+    /// Supports scalar tokens <c>{{ field }}</c>, loops <c>{{ for item in items }}...{{ end }}</c>,
+    /// conditionals, and all other Scriban template features.
     /// </summary>
     private static string MergeData(string htmlContent, string? cssContent, string dataJson)
     {
@@ -164,28 +166,57 @@ internal sealed class HtmlReportRenderer : IReportRenderer
             html = html.Replace("</head>", $"{styleTag}</head>", StringComparison.OrdinalIgnoreCase);
         }
 
-        // Replace {{key}} tokens with flattened JSON values
         if (string.IsNullOrWhiteSpace(dataJson) || dataJson == "{}")
         {
             return html;
         }
 
-        using JsonDocument doc = JsonDocument.Parse(dataJson);
+        // Build Scriban script object from the JSON payload
+        var scriptObject = new ScriptObject();
 
+        using JsonDocument doc = JsonDocument.Parse(dataJson);
         foreach (JsonProperty property in doc.RootElement.EnumerateObject())
         {
-            string token = $"{{{{{property.Name}}}}}";
-            string value = property.Value.ValueKind switch
-            {
-                JsonValueKind.String => property.Value.GetString() ?? string.Empty,
-                JsonValueKind.Null   => string.Empty,
-                _                   => property.Value.GetRawText()
-            };
-
-            html = html.Replace(token, value, StringComparison.Ordinal);
+            scriptObject.Add(
+                property.Name,
+                JsonElementToScribanValue(property.Value));
         }
 
-        return html;
+        var context = new TemplateContext { StrictVariables = false };
+        context.PushGlobal(scriptObject);
+
+        Template scribanTemplate = Template.Parse(html);
+        return scribanTemplate.Render(context);
+    }
+
+    /// <summary>
+    /// Converts a <see cref="JsonElement"/> to a CLR value that Scriban can work with.
+    /// Arrays become <see cref="List{T}"/> of <see cref="ScriptObject"/> (for objects)
+    /// or plain values (for primitive arrays).
+    /// </summary>
+    private static object? JsonElementToScribanValue(JsonElement element) =>
+        element.ValueKind switch
+        {
+            JsonValueKind.String  => element.GetString(),
+            JsonValueKind.Number  => element.TryGetInt64(out long l) ? l : element.GetDouble(),
+            JsonValueKind.True    => true,
+            JsonValueKind.False   => false,
+            JsonValueKind.Null    => null,
+            JsonValueKind.Array   => element.EnumerateArray()
+                                        .Select(JsonElementToScribanValue)
+                                        .ToList(),
+            JsonValueKind.Object  => JsonObjectToScriptObject(element),
+            _                     => element.GetRawText()
+        };
+
+    private static ScriptObject JsonObjectToScriptObject(JsonElement element)
+    {
+        var obj = new ScriptObject();
+        foreach (JsonProperty prop in element.EnumerateObject())
+        {
+            obj.Add(prop.Name, JsonElementToScribanValue(prop.Value));
+        }
+        return obj;
     }
 
     private HtmlPdfRenderOptions BuildPdfOptions(ReportTemplate template)

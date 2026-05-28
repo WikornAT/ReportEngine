@@ -22,12 +22,13 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.8" />
     <!-- ===================================================== -->
     <!-- Microsoft Extensions                                  -->
     <!-- ===================================================== -->
-	<PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.10" />
-	<PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
+	  <PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.10" />
+	  <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.2.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
@@ -39,6 +40,11 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.8" />
+    <!-- ===================================================== -->
+    <!-- Scriban                                               -->
+    <!-- ===================================================== -->
+    <PackageVersion Include="Scriban" Version="7.2.1" />
+
     <!-- ===================================================== -->
     <!-- Security / Identity / Tokens                          -->
     <!-- ===================================================== -->
