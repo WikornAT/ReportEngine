@@ -1,4 +1,4 @@
-using Exim.ReportEngine.Abstractions.Repositories;
+using ReportEngine.Abstractions.Repositories;
 
 namespace Labeling.Domain.GuaranteeInfo;
 
