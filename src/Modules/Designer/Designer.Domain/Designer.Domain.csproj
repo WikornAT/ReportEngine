@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Abstractions\Exim.ReportEngine.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.SharedKernel\Exim.ReportEngine.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Abstractions\ReportEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.SharedKernel\ReportEngine.SharedKernel.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

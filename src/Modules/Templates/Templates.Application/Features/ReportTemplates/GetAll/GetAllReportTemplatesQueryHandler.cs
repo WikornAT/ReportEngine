@@ -1,6 +1,6 @@
 using MediatR;
 
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 using Templates.Application.Contracts;
 using Templates.Application.DTOs;
 using Templates.Application.Mapping;

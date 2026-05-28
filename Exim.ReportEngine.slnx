@@ -1,12 +1,12 @@
 <Solution Format="Scaffold.Script.Manifest.v1">
-  <Name>Exim.ReportEngine</Name>
+  <Name>ReportEngine</Name>
   <GeneratedAtUtc>2026-05-26T04:16:55.6620798Z</GeneratedAtUtc>
   <Projects>
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Abstractions/Exim.ReportEngine.Abstractions.csproj" />
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Contracts/Exim.ReportEngine.Contracts.csproj" />
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Infrastructure/Exim.ReportEngine.Infrastructure.csproj" />
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.SharedKernel/Exim.ReportEngine.SharedKernel.csproj" />
-    <Project Path="src/Host/Exim.ReportEngine.ApiHost/Exim.ReportEngine.ApiHost.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.Abstractions/ReportEngine.Abstractions.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.Contracts/ReportEngine.Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.Infrastructure/ReportEngine.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.SharedKernel/ReportEngine.SharedKernel.csproj" />
+    <Project Path="src/Host/ReportEngine.ApiHost/ReportEngine.ApiHost.csproj" />
     <Project Path="src/Modules/Dashboard/Dashboard.Api/Dashboard.Api.csproj" />
     <Project Path="src/Modules/Dashboard/Dashboard.Application/Dashboard.Application.csproj" />
     <Project Path="src/Modules/Dashboard/Dashboard.Domain/Dashboard.Domain.csproj" />
@@ -34,7 +34,7 @@
     <Project Path="src/Modules/Templates/Templates.Application/Templates.Application.csproj" />
     <Project Path="src/Modules/Templates/Templates.Domain/Templates.Domain.csproj" />
     <Project Path="src/Modules/Templates/Templates.Infrastructure/Templates.Infrastructure.csproj" />
-    <Project Path="tests/Exim.ReportEngine.ArchTests/Exim.ReportEngine.ArchTests.csproj" />
+    <Project Path="tests/ReportEngine.ArchTests/ReportEngine.ArchTests.csproj" />
     <Project Path="tests/Modules/Dashboard/Dashboard.Application.UnitTests/Dashboard.Application.UnitTests.csproj" />
     <Project Path="tests/Modules/Dashboard/Dashboard.Domain.UnitTests/Dashboard.Domain.UnitTests.csproj" />
     <Project Path="tests/Modules/Designer/Designer.Application.UnitTests/Designer.Application.UnitTests.csproj" />
@@ -49,14 +49,14 @@
     <Project Path="tests/Modules/Templates/Templates.Domain.UnitTests/Templates.Domain.UnitTests.csproj" />
   </Projects>
   <Folder Name="/BuildingBlocks/">
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Abstractions/Exim.ReportEngine.Abstractions.csproj" />
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Contracts/Exim.ReportEngine.Contracts.csproj" />
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.Infrastructure/Exim.ReportEngine.Infrastructure.csproj" />
-    <Project Path="src/BuildingBlocks/Exim.ReportEngine.SharedKernel/Exim.ReportEngine.SharedKernel.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.Abstractions/ReportEngine.Abstractions.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.Contracts/ReportEngine.Contracts.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.Infrastructure/ReportEngine.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/ReportEngine.SharedKernel/ReportEngine.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/Hosts/">
-    <Project Path="src/Host/Exim.ReportEngine.ApiHost/Exim.ReportEngine.ApiHost.csproj" />
-    <Project Path="src/Host/Exim.ReportEngine.WorkerHost/Exim.ReportEngine.WorkerHost.csproj" Id="130d34cf-7999-4f53-a34d-f4a8297b8a7a" />
+    <Project Path="src/Host/ReportEngine.ApiHost/ReportEngine.ApiHost.csproj" />
+    <Project Path="src/Host/ReportEngine.WorkerHost/ReportEngine.WorkerHost.csproj" Id="130d34cf-7999-4f53-a34d-f4a8297b8a7a" />
   </Folder>
   <Folder Name="/Modules/" />
   <Folder Name="/Modules/Dashboard/">

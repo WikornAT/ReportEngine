@@ -14,8 +14,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Templates.Application\Templates.Application.csproj" />
     <ProjectReference Include="..\Templates.Infrastructure\Templates.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Contracts\Exim.ReportEngine.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.SharedKernel\Exim.ReportEngine.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Contracts\ReportEngine.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.SharedKernel\ReportEngine.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>

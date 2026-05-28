@@ -1,4 +1,4 @@
-# Exim.ReportEngine
+# ReportEngine
 
 A **Modular Monolith** reporting platform built with **.NET 10**, following **Clean Architecture** and **Domain-Driven Design** principles. The system provides a full lifecycle for defining, configuring, and executing data-driven reports with pluggable renderers and storage back-ends.
 
@@ -58,11 +58,11 @@ Each module is **fully self-contained** — its own database schema, its own mig
 ## Solution Structure
 
 ```
-Exim.ReportEngine/
+ReportEngine/
 ├── src/
 │   ├── Host/
-│   │   ├── Exim.ReportEngine.ApiHost/          # ASP.NET Core Web API host
-│   │   └── Exim.ReportEngine.WorkerHost/       # .NET Worker Service host
+│   │   ├── ReportEngine.ApiHost/          # ASP.NET Core Web API host
+│   │   └── ReportEngine.WorkerHost/       # .NET Worker Service host
 │   │
 │   ├── Modules/
 │   │   ├── Reporting/
@@ -78,10 +78,10 @@ Exim.ReportEngine/
 │   │   └── Templates/
 │   │
 │   └── BuildingBlocks/
-│       ├── Exim.ReportEngine.SharedKernel/     # Result<T>, AppError, PagedResult, ICurrentUserService, IDateTimeProvider
-│       ├── Exim.ReportEngine.Abstractions/     # IRepository<T>
-│       ├── Exim.ReportEngine.Contracts/        # Cross-module contracts
-│       └── Exim.ReportEngine.Infrastructure/  # Shared infrastructure helpers
+│       ├── ReportEngine.SharedKernel/     # Result<T>, AppError, PagedResult, ICurrentUserService, IDateTimeProvider
+│       ├── ReportEngine.Abstractions/     # IRepository<T>
+│       ├── ReportEngine.Contracts/        # Cross-module contracts
+│       └── ReportEngine.Infrastructure/  # Shared infrastructure helpers
 │
 └── tests/
     └── Modules/
@@ -211,7 +211,7 @@ Cross-cutting primitives used by all modules:
 
 ## Hosts
 
-### ApiHost (`Exim.ReportEngine.ApiHost`)
+### ApiHost (`ReportEngine.ApiHost`)
 
 ASP.NET Core Web API that composes all module controllers.
 
@@ -219,7 +219,7 @@ ASP.NET Core Web API that composes all module controllers.
 - Exposes Swagger/OpenAPI at `/swagger` in development.
 - Loads controllers from module assemblies via `AddApplicationPart`.
 
-### WorkerHost (`Exim.ReportEngine.WorkerHost`)
+### WorkerHost (`ReportEngine.WorkerHost`)
 
 .NET Worker Service for background processing (scheduled report runs, event consumers, etc.).
 
@@ -255,7 +255,7 @@ ASP.NET Core Web API that composes all module controllers.
 
 ### Configuration
 
-Update `src/Host/Exim.ReportEngine.ApiHost/appsettings.json` (or use user secrets / environment variables):
+Update `src/Host/ReportEngine.ApiHost/appsettings.json` (or use user secrets / environment variables):
 
 ```json
 {
@@ -272,13 +272,13 @@ Update `src/Host/Exim.ReportEngine.ApiHost/appsettings.json` (or use user secret
 # Reporting module
 dotnet ef database update `
   --project src/Modules/Reporting/Reporting.Infrastructure `
-  --startup-project src/Host/Exim.ReportEngine.ApiHost
+  --startup-project src/Host/ReportEngine.ApiHost
 ```
 
 ### Run the API Host
 
 ```powershell
-dotnet run --project src/Host/Exim.ReportEngine.ApiHost
+dotnet run --project src/Host/ReportEngine.ApiHost
 ```
 
 Swagger UI: `https://localhost:{port}/swagger`
@@ -286,7 +286,7 @@ Swagger UI: `https://localhost:{port}/swagger`
 ### Run the Worker Host
 
 ```powershell
-dotnet run --project src/Host/Exim.ReportEngine.WorkerHost
+dotnet run --project src/Host/ReportEngine.WorkerHost
 ```
 
 ---

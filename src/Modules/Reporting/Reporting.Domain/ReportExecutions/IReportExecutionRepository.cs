@@ -1,4 +1,4 @@
-using Exim.ReportEngine.Abstractions.Repositories;
+using ReportEngine.Abstractions.Repositories;
 using Reporting.Domain.Enums;
 
 namespace Reporting.Domain.ReportExecutions;

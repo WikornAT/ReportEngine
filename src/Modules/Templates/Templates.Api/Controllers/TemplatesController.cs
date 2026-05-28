@@ -3,7 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 
 using Templates.Application.DTOs;
 using Templates.Application.Features.ReportTemplates.GetAll;

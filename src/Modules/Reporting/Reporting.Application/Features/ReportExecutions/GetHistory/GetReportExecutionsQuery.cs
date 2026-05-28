@@ -1,6 +1,6 @@
 using MediatR;
 
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 using Reporting.Application.DTOs;
 using Reporting.Application.Features.ReportDefinitions.GetList;
 using Reporting.Domain.Enums;

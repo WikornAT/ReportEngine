@@ -19,9 +19,9 @@
     <ProjectReference Include="..\Reporting.Domain\Reporting.Domain.csproj" />
     <ProjectReference Include="..\..\Templates\Templates.Application\Templates.Application.csproj" />
     <ProjectReference Include="..\..\Templates\Templates.Domain\Templates.Domain.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Abstractions\Exim.ReportEngine.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.Infrastructure\Exim.ReportEngine.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Exim.ReportEngine.SharedKernel\Exim.ReportEngine.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Abstractions\ReportEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Infrastructure\ReportEngine.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.SharedKernel\ReportEngine.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>

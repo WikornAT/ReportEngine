@@ -1,6 +1,0 @@
-@Exim.ReportEngine.ApiHost_HostAddress = http://localhost:5132
-
-GET {{Exim.ReportEngine.ApiHost_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

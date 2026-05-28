@@ -3,7 +3,7 @@ using FluentValidation.Results;
 
 using MediatR;
 
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 
 namespace Templates.Application.Behaviours;
 

@@ -1,6 +1,6 @@
 using MediatR;
 
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 using Templates.Application.DTOs;
 
 namespace Templates.Application.Features.ReportTemplates.GetAll;

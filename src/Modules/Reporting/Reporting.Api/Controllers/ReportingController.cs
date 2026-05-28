@@ -17,7 +17,7 @@ using Reporting.Application.Features.ReportExecutions.Execute;
 using Reporting.Application.Features.ReportExecutions.GetHistory;
 using Reporting.Domain.Enums;
 
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 
 namespace Reporting.Api.Controllers;
 

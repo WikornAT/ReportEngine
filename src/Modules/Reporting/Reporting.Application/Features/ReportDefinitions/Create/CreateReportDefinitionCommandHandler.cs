@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 using Reporting.Application.Contracts;
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 using Reporting.Application.DTOs;
 using Reporting.Application.Mapping;
 using Reporting.Domain.ReportDefinitions;

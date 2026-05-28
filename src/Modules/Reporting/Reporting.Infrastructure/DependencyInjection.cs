@@ -1,4 +1,4 @@
-using Exim.ReportEngine.SharedKernel;
+using ReportEngine.SharedKernel;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
