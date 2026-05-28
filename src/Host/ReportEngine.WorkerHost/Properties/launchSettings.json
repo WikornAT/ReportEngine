@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ReportEngine.WorkerHost": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
