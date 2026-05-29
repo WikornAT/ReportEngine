@@ -18,6 +18,9 @@ internal sealed class ReportTemplateConfiguration : IEntityTypeConfiguration<Rep
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(x => x.TemplateCode)
+            .HasMaxLength(100);
+
         builder.Property(x => x.Description)
             .HasMaxLength(2000);
 
@@ -56,5 +59,7 @@ internal sealed class ReportTemplateConfiguration : IEntityTypeConfiguration<Rep
             .HasMaxLength(256);
 
         builder.HasIndex(x => x.Name).IsUnique();
+        builder.HasIndex(x => x.TemplateCode).IsUnique()
+            .HasFilter("\"TemplateCode\" IS NOT NULL");
     }
 }

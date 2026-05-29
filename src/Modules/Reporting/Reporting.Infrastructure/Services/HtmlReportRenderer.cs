@@ -159,6 +159,13 @@ internal sealed class HtmlReportRenderer : IReportRenderer
     {
         string html = htmlContent;
 
+        // Inject font stylesheet link so @font-face rules are always available
+        const string FontCssLink = "<link rel=\"stylesheet\" href=\"/api/designer/fonts/css\">";
+        if (!html.Contains("/api/designer/fonts/css", StringComparison.OrdinalIgnoreCase))
+        {
+            html = html.Replace("</head>", $"{FontCssLink}\n</head>", StringComparison.OrdinalIgnoreCase);
+        }
+
         // Inject supplementary CSS into <head> when present
         if (!string.IsNullOrWhiteSpace(cssContent))
         {
@@ -237,6 +244,11 @@ internal sealed class HtmlReportRenderer : IReportRenderer
             PaperHeight: landscape ? widthIn : heightIn,
             Landscape: landscape,
             PrintBackground: true,
+            MarginTopInches: _rendererOptions.MarginTopInches,
+            MarginBottomInches: _rendererOptions.MarginBottomInches,
+            MarginLeftInches: _rendererOptions.MarginLeftInches,
+            MarginRightInches: _rendererOptions.MarginRightInches,
+            Scale: _rendererOptions.Scale,
             BaseUrl: _rendererOptions.AssetBaseUrl);
     }
 }

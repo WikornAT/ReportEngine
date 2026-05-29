@@ -6,6 +6,7 @@ namespace Templates.Application.DTOs;
 public sealed record ReportTemplateDto(
     Guid Id,
     string Name,
+    string? TemplateCode,
     string? Description,
     string HtmlContent,
     string? CssContent,

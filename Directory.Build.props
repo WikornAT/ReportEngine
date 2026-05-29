@@ -15,6 +15,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors>$(WarningsAsErrors);CS*;CA*;SA*</WarningsAsErrors>
 
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <NoWarn>$(NoWarn);1591;CA1861</NoWarn>
   </PropertyGroup>
 </Project>

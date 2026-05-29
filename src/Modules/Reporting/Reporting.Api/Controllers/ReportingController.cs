@@ -17,6 +17,8 @@ using Reporting.Application.Features.ReportDefinitions.GetList;
 using Reporting.Application.Features.ReportDefinitions.RemoveDataSource;
 using Reporting.Application.Features.ReportDefinitions.Update;
 using Reporting.Application.Features.ReportDefinitions.UpdateDataSource;
+using Reporting.Application.Features.ReportDefinitions.RenderPdf;
+using Reporting.Application.Features.ReportDefinitions.RenderPreview;
 using Reporting.Application.Features.ReportExecutions.Execute;
 using Reporting.Application.Features.ReportExecutions.GetHistory;
 using Reporting.Domain.Enums;
@@ -226,6 +228,53 @@ public sealed class ReportingController : ControllerBase
             cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : Problem(result);
+    }
+
+    // ── Report Preview / Direct Render ────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the merged HTML of a report definition with live data substituted.
+    /// Does not persist a ReportExecution record.
+    /// Pass parametersJson as a query-string encoded JSON object, e.g. <c>%7B%22invoiceNo%22%3A%22INV-001%22%7D</c>.
+    /// </summary>
+    [HttpGet("report-definitions/{id:guid}/preview")]
+    public async Task<IActionResult> PreviewHtml(
+        Guid id,
+        [FromQuery] string parametersJson = "{}",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new RenderReportPreviewQuery(id, parametersJson),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Problem(result);
+        }
+
+        return Content(result.Value, "text/html; charset=utf-8");
+    }
+
+    /// <summary>
+    /// Renders a report definition directly to PDF and streams the bytes back.
+    /// Does not persist a ReportExecution record.
+    /// </summary>
+    [HttpPost("report-definitions/{id:guid}/render-pdf")]
+    public async Task<IActionResult> RenderPdf(
+        Guid id,
+        [FromBody] RenderReportPdfRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new RenderReportPdfQuery(id, request.ParametersJson),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Problem(result);
+        }
+
+        return File(result.Value, "application/pdf", $"report_{id:N}.pdf");
     }
 
     // ── Report Executions ─────────────────────────────────────────────────────

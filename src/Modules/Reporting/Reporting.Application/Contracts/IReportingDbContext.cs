@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
+using Reporting.Domain.RenderLogs;
 using Reporting.Domain.ReportDefinitions;
 using Reporting.Domain.ReportExecutions;
 
@@ -20,6 +21,9 @@ public interface IReportingDbContext
 
     /// <summary>The <see cref="ReportExecution"/> aggregate roots.</summary>
     public DbSet<ReportExecution> ReportExecutions { get; }
+
+    /// <summary>Lightweight logs for inline preview and direct PDF renders.</summary>
+    public DbSet<RenderLog> RenderLogs { get; }
 
     /// <summary>
     /// Asynchronously saves all changes made in this context to the database.

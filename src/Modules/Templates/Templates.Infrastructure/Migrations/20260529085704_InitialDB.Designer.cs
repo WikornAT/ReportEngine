@@ -12,8 +12,8 @@ using Templates.Infrastructure.Persistence;
 namespace Templates.Infrastructure.Migrations
 {
     [DbContext(typeof(TemplatesDbContext))]
-    [Migration("20260528065851_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260529085704_InitialDB")]
+    partial class InitialDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -80,6 +80,10 @@ namespace Templates.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("TemplateCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -90,6 +94,10 @@ namespace Templates.Infrastructure.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("TemplateCode")
+                        .IsUnique()
+                        .HasFilter("\"TemplateCode\" IS NOT NULL");
 
                     b.ToTable("report_templates", "templates");
                 });

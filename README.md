@@ -1,6 +1,6 @@
 # ReportEngine
 
-A **Modular Monolith** reporting platform built with **.NET 10**, following **Clean Architecture** and **Domain-Driven Design** principles. The system provides a full lifecycle for defining, configuring, and executing data-driven reports with pluggable renderers and storage back-ends.
+A **Modular Monolith** reporting platform built with **.NET 10**, following **Clean Architecture** and **Domain-Driven Design** principles. The system provides a complete lifecycle for defining, configuring, and executing data-driven reports with pluggable renderers and storage back-ends.
 
 ---
 
@@ -11,8 +11,8 @@ A **Modular Monolith** reporting platform built with **.NET 10**, following **Cl
 - [System Flow](#system-flow)
   - [Request Pipeline](#request-pipeline)
   - [Report Definition Lifecycle](#report-definition-lifecycle)
-  - [Report Execution Pipeline](#report-execution-pipeline)
   - [DataSource CRUD Flow](#datasource-crud-flow)
+  - [Report Execution Pipeline](#report-execution-pipeline)
   - [Execution State Machine](#execution-state-machine)
 - [Modules](#modules)
   - [Reporting](#reporting-module)
@@ -35,65 +35,82 @@ A **Modular Monolith** reporting platform built with **.NET 10**, following **Cl
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                        Hosts                            │
-│   ApiHost (ASP.NET Core)   │   WorkerHost (.NET Worker) │
-└───────────────┬─────────────────────────┬───────────────┘
-                │                         │
-┌───────────────▼─────────────────────────▼───────────────┐
-│                       Modules                           │
-│  Reporting │ Labeling │ Printing │ Designer │ ...       │
-│  ┌────────┐ Each module contains:                       │
-│  │  .Api  │  ← HTTP controllers / endpoints            │
-│  │  .App  │  ← Commands, Queries (MediatR/CQRS)        │
-│  │  .Dom  │  ← Aggregates, Entities, Domain Rules      │
-│  │  .Inf  │  ← EF Core, Repositories, Services         │
-│  └────────┘                                             │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────┐
-│                    Building Blocks                      │
-│  SharedKernel │ Abstractions │ Contracts │ Infrastructure│
-└─────────────────────────────────────────────────────────┘
++---------------------------------------------------------------+
+|                            Hosts                              |
+|   ReportEngine.ApiHost (ASP.NET Core)                         |
+|   ReportEngine.WorkerHost (.NET Worker Service)               |
++---------------------------------------------------------------+
+         |  AddApplicationPart          |
+         |  AddReportingApi()           |  BackgroundService
+         |  AddLabelingInfrastructure() |
+         |  AddTemplatesApi()           |
+         v                             v
++---------------------------------------------------------------+
+|                          Modules                              |
+|                                                               |
+|  Reporting    Labeling    Templates    Printing               |
+|  +--------+   +--------+  +--------+  +--------+             |
+|  | .Api   |   | .Api   |  | .Api   |  | .Api   |             |
+|  | .App   |   | .App   |  | .App   |  | .App   |             |
+|  | .Dom   |   | .Dom   |  | .Dom   |  | .Dom   |             |
+|  | .Infra |   | .Infra |  | .Infra |  | .Infra |             |
+|  +--------+   +--------+  +--------+  +--------+             |
+|                                                               |
+|  Designer     Scheduling    Dashboard                         |
++---------------------------------------------------------------+
+                        |
++---------------------------------------------------------------+
+|                   Building Blocks                             |
+|  SharedKernel | Abstractions | Contracts | Infrastructure     |
++---------------------------------------------------------------+
 ```
 
-Each module is **fully self-contained** — its own database schema, its own migration history, and its own DI registration entry point. Modules communicate only through well-defined contracts in the BuildingBlocks layer, never through direct project references to each other.
+Each module is **fully self-contained**: its own DB schema, EF Core migration history, and DI entry point.
+Modules never reference each other directly — all cross-module communication goes through **BuildingBlocks** contracts.
 
 ---
 
 ## Solution Structure
 
 ```
-ReportEngine/
+Exim.ReportEngine/
 ├── src/
 │   ├── Host/
-│   │   ├── ReportEngine.ApiHost/          # ASP.NET Core Web API host
-│   │   └── ReportEngine.WorkerHost/       # .NET Worker Service host
+│   │   ├── ReportEngine.ApiHost/              # ASP.NET Core 10 Web API
+│   │   └── ReportEngine.WorkerHost/           # .NET Worker Service
 │   │
 │   ├── Modules/
 │   │   ├── Reporting/
-│   │   │   ├── Reporting.Api/             # Controllers, request/response models
-│   │   │   ├── Reporting.Application/     # CQRS handlers, DTOs, validators, behaviours
-│   │   │   ├── Reporting.Domain/          # Aggregates, enums, domain rules, guards
-│   │   │   └── Reporting.Infrastructure/  # EF Core, services, migrations
+│   │   │   ├── Reporting.Api/                 # Controller, request models, DI entry AddReportingApi()
+│   │   │   ├── Reporting.Application/         # Commands, queries, handlers, DTOs, validators
+│   │   │   ├── Reporting.Domain/              # Aggregates, child entities, enums, Guards
+│   │   │   └── Reporting.Infrastructure/      # EF Core DbContext, services, migrations
 │   │   ├── Labeling/
+│   │   │   ├── Labeling.Api/
+│   │   │   ├── Labeling.Application/
+│   │   │   ├── Labeling.Domain/
+│   │   │   └── Labeling.Infrastructure/
+│   │   ├── Templates/
+│   │   │   ├── Templates.Api/
+│   │   │   ├── Templates.Application/
+│   │   │   ├── Templates.Domain/
+│   │   │   └── Templates.Infrastructure/
 │   │   ├── Printing/
 │   │   ├── Designer/
 │   │   ├── Scheduling/
-│   │   ├── Dashboard/
-│   │   └── Templates/
+│   │   └── Dashboard/
 │   │
 │   └── BuildingBlocks/
-│       ├── ReportEngine.SharedKernel/     # Result<T>, AppError, PagedResult, ICurrentUserService
-│       ├── ReportEngine.Abstractions/     # IRepository<T>
-│       ├── ReportEngine.Contracts/        # Cross-module contracts
-│       └── ReportEngine.Infrastructure/  # Shared infrastructure helpers
+│       ├── ReportEngine.SharedKernel/         # Result<T>, AppError, PagedResult, ICurrentUserService
+│       ├── ReportEngine.Abstractions/         # IRepository<TEntity, TId>
+│       ├── ReportEngine.Contracts/            # Cross-module integration contracts
+│       └── ReportEngine.Infrastructure/       # Shared infrastructure helpers
 │
 └── tests/
     └── Modules/
         ├── Reporting/
-        │   ├── Reporting.Domain.UnitTests/
-        │   └── Reporting.Application.UnitTests/
+        │   ├── Reporting.Domain.UnitTests/      # 16 pure domain tests
+        │   └── Reporting.Application.UnitTests/ # 14 handler tests (EF InMemory)
         ├── Printing/
         ├── Designer/
         ├── Scheduling/
@@ -107,178 +124,181 @@ ReportEngine/
 
 ### Request Pipeline
 
-Every HTTP request travels through the same vertical stack before reaching the database.
+Every HTTP request travels through the same vertical stack from controller down to the database.
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Controller as ReportingController<br/>(Reporting.Api)
-    participant MediatR
-    participant Validator as ValidationPipelineBehaviour<br/>(FluentValidation)
-    participant Handler as Command/QueryHandler<br/>(Reporting.Application)
-    participant Domain as ReportDefinition Aggregate<br/>(Reporting.Domain)
-    participant DB as ReportingDbContext<br/>(PostgreSQL)
+    participant Controller as ReportingController (Reporting.Api)
+    participant MediatR as IMediator
+    participant Pipeline as ValidationPipelineBehaviour (FluentValidation)
+    participant Handler as Command/QueryHandler (Reporting.Application, internal sealed)
+    participant Domain as Aggregate Root (Reporting.Domain)
+    participant DB as ReportingDbContext (EF Core / PostgreSQL)
 
-    Client->>Controller: HTTP Request (JSON)
-    Controller->>MediatR: Send(Command/Query)
-    MediatR->>Validator: Validate request
+    Client->>Controller: HTTP request (JSON body / query params)
+    Controller->>MediatR: Send(command or query)
+    MediatR->>Pipeline: IPipelineBehavior.Handle()
+
     alt Validation fails
-        Validator-->>Controller: Result<T>(AppError.Validation)
-        Controller-->>Client: 422 Unprocessable Entity
+        Pipeline-->>Controller: Result<T>(AppError.Validation)
+        Controller-->>Client: 422 Unprocessable Entity (Problem Details)
     else Validation passes
-        Validator->>Handler: Handle(request, ct)
-        Handler->>DB: Load aggregate (EF Core + Include)
+        Pipeline->>Handler: next() -> Handler.Handle()
+        Handler->>DB: Load aggregate (AsTracking + Include children)
         alt Aggregate not found
             Handler-->>Controller: Result<T>(AppError.NotFound)
             Controller-->>Client: 404 Not Found
         else Aggregate loaded
-            Handler->>Domain: Call domain method
-            alt Domain rule violated
-                Domain-->>Handler: throws ReportingDomainException
+            Handler->>Domain: Call domain method e.g. AddDataSource()
+            alt Domain invariant violated
+                Domain-->>Handler: throw ReportingDomainException
                 Handler-->>Controller: Result<T>(AppError.DomainViolation)
                 Controller-->>Client: 422 Unprocessable Entity
-            else Success
-                Domain-->>Handler: mutated aggregate
+            else Mutation succeeds
+                Domain-->>Handler: mutated aggregate (state changed in memory)
                 Handler->>DB: SaveChangesAsync()
-                Handler-->>Controller: Result<T>(Dto)
-                Controller-->>Client: 200/201 OK
+                Handler-->>Controller: Result<T>(DTO)
+                Controller-->>Client: 200 OK / 201 Created / 204 No Content
             end
         end
     end
 ```
 
+**Key design points:**
+
+- ValidationPipelineBehaviour<TRequest, TResponse> is an open-generic MediatR behaviour — no handler decoration needed.
+- Handlers are internal sealed; exposed to test projects via [assembly: InternalsVisibleTo].
+- All failure paths return Result<T> with a typed AppError — no exceptions cross layer boundaries.
+- The Problem() helper in ReportingController maps AppError.Code to HTTP status codes via a switch expression.
+
 ---
 
 ### Report Definition Lifecycle
-
-A `ReportDefinition` must pass through an explicit lifecycle before it can be executed.
 
 ```mermaid
 stateDiagram-v2
     direction LR
 
-    [*] --> Draft : POST /report-definitions\nCreate()
+    [*]      --> Draft    : POST /report-definitions (Create)
 
-    Draft --> Draft : AddDataSource()\nAddParameter()\nUpdate()\nAssignTemplate()
+    Draft    --> Draft    : Update / AddDataSource / AddParameter / AssignTemplate
+    Draft    --> Active   : POST /{id}/activate  [requires >= 1 DataSource]
+    Draft    --> Archived : Archive()
 
-    Draft --> Active : POST /activate\nPublish()\n[requires ≥1 DataSource]
+    Active   --> Inactive : POST /{id}/deactivate
+    Active   --> Archived : Archive()
 
-    Active --> Inactive : POST /deactivate\nDeactivate()
-
-    Inactive --> Active : POST /activate\nPublish()
-
-    Active --> Archived : Archive()\n[immutable — no further changes]
+    Inactive --> Active   : POST /{id}/activate
     Inactive --> Archived : Archive()
-    Draft --> Archived : Archive()
 
-    Archived --> [*]
+    Archived --> Archived : immutable - all mutations throw ReportingDomainException
 ```
 
-> **Invariants enforced by the domain:**
-> - `Publish()` requires at least one `DataSource`.
-> - `Archived` definitions are fully immutable — all mutating methods throw `ReportingDomainException`.
-> - The last `DataSource` on an `Active` report cannot be removed (must `Deactivate` first).
-
----
-
-### Report Execution Pipeline
-
-`POST /api/reporting/executions` triggers the full end-to-end pipeline.
-
-```mermaid
-flowchart TD
-    A([Client: POST /executions]) --> B[ExecuteReportCommand\nReportDefinitionId\nParametersJson\nRequestedFormats]
-    B --> C{Validate\nFluentValidation}
-    C -- invalid --> Z1([422 Validation Error])
-    C -- valid --> D[Load ReportDefinition\n+ DataSources\nfrom DB]
-    D --> E{Definition\nexists?}
-    E -- no --> Z2([404 Not Found])
-    E -- yes --> F{Status\n= Active?}
-    F -- no --> Z3([422 DomainViolation\nReport is not Active])
-    F -- yes --> G[ReportExecution.Create\nStatus = Queued]
-    G --> H[Persist to DB]
-    H --> I[IReportQueryExecutor\nExecute queries\nfor each DataSource]
-    I --> J{Query\nsucceeded?}
-    J -- no --> K[execution.Fail\nErrorMessage]
-    K --> L[Persist Failed\nstatus]
-    L --> Z4([500 or 422 Error])
-    J -- yes --> M[IReportRenderer\nRender HTML → PDF/XLSX]
-    M --> N{Render\nsucceeded?}
-    N -- no --> K
-    N -- yes --> O[IReportOutputStorage\nStore output files]
-    O --> P[execution.Complete\nStatus = Completed]
-    P --> Q[Persist Completed\nstatus + OutputFiles]
-    Q --> R([201 Created\nReportExecutionDto])
-```
+| Invariant | Where enforced |
+|-----------|---------------|
+| Name and Category non-empty, max 200 / 100 chars | Guard static class |
+| Parameter names unique within a definition | ReportDefinition.AddParameter |
+| DataSource names unique within a definition | ReportDefinition.AddDataSource / UpdateDataSource |
+| Publish() requires at least one DataSource | ReportDefinition.Publish |
+| Archived definitions are fully immutable | EnsureNotArchived() at every mutation entry point |
+| Last DataSource on an Active report cannot be removed | ReportDefinition.RemoveDataSource |
 
 ---
 
 ### DataSource CRUD Flow
 
-Each data source is a **child entity** of the `ReportDefinition` aggregate. All mutations go through the aggregate root to enforce domain invariants.
+ReportDataSource is a **child entity** owned by the ReportDefinition aggregate root. All mutations go through the aggregate to enforce domain invariants.
 
 ```mermaid
 flowchart LR
-    subgraph API["Reporting.Api (HTTP)"]
-        EP1["POST /report-definitions/{id}/data-sources\nAdd"]
-        EP2["GET  /report-definitions/{id}/data-sources\nList"]
-        EP3["GET  /report-definitions/{id}/data-sources/{dsId}\nGet by ID"]
-        EP4["PUT  /report-definitions/{id}/data-sources/{dsId}\nUpdate"]
-        EP5["DELETE /report-definitions/{id}/data-sources/{dsId}\nRemove"]
+    subgraph HTTP["HTTP - Reporting.Api"]
+        A1["POST /{id}/data-sources (Add)"]
+        A2["GET  /{id}/data-sources (List)"]
+        A3["GET  /{id}/data-sources/{dsId} (Get by ID)"]
+        A4["PUT  /{id}/data-sources/{dsId} (Update)"]
+        A5["DELETE /{id}/data-sources/{dsId} (Remove)"]
     end
 
-    subgraph APP["Reporting.Application (CQRS)"]
-        C1["AddReportDataSourceCommand\n+ Validator"]
-        C2["GetReportDataSourcesQuery\n+ Validator"]
-        C3["GetReportDataSourceByIdQuery\n+ Validator"]
-        C4["UpdateReportDataSourceCommand\n+ Validator"]
-        C5["RemoveReportDataSourceCommand\n+ Validator"]
+    subgraph CQRS["Application - MediatR CQRS"]
+        B1["AddReportDataSourceCommand + Validator"]
+        B2["GetReportDataSourcesQuery + Validator"]
+        B3["GetReportDataSourceByIdQuery + Validator"]
+        B4["UpdateReportDataSourceCommand + Validator"]
+        B5["RemoveReportDataSourceCommand + Validator"]
     end
 
-    subgraph DOM["Reporting.Domain (Aggregate)"]
-        AGG["ReportDefinition\nAggregate Root"]
-        DS["ReportDataSource\nChild Entity"]
-        AGG -- owns --> DS
+    subgraph DOMAIN["Domain"]
+        AGG["ReportDefinition (Aggregate Root)"]
+        DS["ReportDataSource (Child Entity)"]
+        AGG -->|owns| DS
     end
 
-    subgraph INFRA["Reporting.Infrastructure"]
-        DB[("PostgreSQL\nreporting.report_data_sources")]
-    end
+    DB[("PostgreSQL schema:reporting table:report_data_sources")]
 
-    EP1 --> C1 --> AGG
-    EP2 --> C2
-    EP3 --> C3
-    EP4 --> C4 --> AGG
-    EP5 --> C5 --> AGG
+    A1 --> B1 --> AGG
+    A2 --> B2 --> DB
+    A3 --> B3 --> DB
+    A4 --> B4 --> AGG
+    A5 --> B5 --> AGG
     AGG --> DB
-    C2 --> DB
-    C3 --> DB
 ```
 
-**Domain invariants on DataSource mutations:**
+**Guard flow for mutations:**
 
 ```mermaid
 flowchart TD
-    A[Mutating method called] --> B{Report\nArchived?}
-    B -- yes --> ERR1([ReportingDomainException\n'Archived report is immutable'])
+    START([Mutation arrives]) --> ARCH{Report Archived?}
+    ARCH -- yes --> E1([422 - Archived report is immutable])
+    ARCH -- no  --> OP{Operation?}
 
-    B -- no --> C{Operation type?}
+    OP -- Add --> U1{Name unique across all DS?}
+    U1 -- no  --> E2([422 - Name already exists])
+    U1 -- yes --> OK1([DataSource added. Report.Touch audits ModifiedAt/By])
 
-    C -- Add --> D{Name unique\nwithin report?}
-    D -- no --> ERR2([ReportingDomainException\n'Name already exists'])
-    D -- yes --> OK1([DataSource added\nReport.Touch audited])
+    OP -- Update --> X1{DataSource exists?}
+    X1 -- no  --> E3([404 - DataSource not found])
+    X1 -- yes --> U2{New name conflicts with another DS?}
+    U2 -- yes --> E4([422 - Name already exists])
+    U2 -- no  --> OK2([DataSource updated. Report.Touch audits ModifiedAt/By])
 
-    C -- Update --> E{DataSource\nexists?}
-    E -- no --> ERR3([ReportingDomainException\n'DataSource not found'])
-    E -- yes --> F{New name conflicts\nwith another DS?}
-    F -- yes --> ERR4([ReportingDomainException\n'Name already exists'])
-    F -- no --> OK2([DataSource updated\nReport.Touch audited])
+    OP -- Remove --> X2{DataSource exists?}
+    X2 -- no  --> E5([404 - DataSource not found])
+    X2 -- yes --> LAST{Report=Active AND last DS?}
+    LAST -- yes --> E6([422 - Cannot remove last DataSource from Active report])
+    LAST -- no  --> OK3([DataSource removed. Report.Touch audits ModifiedAt/By])
+```
 
-    C -- Remove --> G{DataSource\nexists?}
-    G -- no --> ERR5([ReportingDomainException\n'DataSource not found'])
-    G -- yes --> H{Report Active\nAND last DS?}
-    H -- yes --> ERR6([ReportingDomainException\n'Cannot remove last DS\nfrom Active report'])
-    H -- no --> OK3([DataSource removed\nReport.Touch audited])
+---
+
+### Report Execution Pipeline
+
+POST /api/reporting/executions triggers the full end-to-end processing pipeline.
+
+```mermaid
+flowchart TD
+    REQ([Client: POST /api/reporting/executions]) --> CMD["ExecuteReportCommand {ReportDefinitionId, ParametersJson, RequestedFormats, CorrelationId?}"]
+    CMD --> VAL{FluentValidation passes?}
+    VAL -- no  --> E1([422 Validation errors])
+    VAL -- yes --> LOAD[Load ReportDefinition + DataSources from DB]
+    LOAD --> DEF{Definition exists?}
+    DEF -- no  --> E2([404 Not Found])
+    DEF -- yes --> STAT{Status = Active?}
+    STAT -- no  --> E3([422 DomainViolation - Report must be Active to execute])
+    STAT -- yes --> CREATE["ReportExecution.Create() Status=Queued TriggeredBy=ICurrentUserService"]
+    CREATE --> P1[SaveChangesAsync - persist Queued]
+    P1 --> QEXEC["IReportQueryExecutor - execute query per DataSource - returns JSON payload"]
+    QEXEC --> QOK{All queries ok?}
+    QOK -- no  --> FAIL["execution.Fail(errorMessage) Status=Failed"]
+    FAIL --> P2[SaveChangesAsync - persist Failed]
+    P2 --> E4([Error response])
+    QOK -- yes --> RENDER["IReportRenderer (HtmlReportRenderer) - data to HTML. IHtmlToPdfRenderer (Playwright) - HTML to PDF/XLSX/..."]
+    RENDER --> ROK{Render ok?}
+    ROK -- no  --> FAIL
+    ROK -- yes --> STORE[IReportOutputStorage - store files to durable storage]
+    STORE --> COMPLETE["execution.Complete(outputFiles) Status=Completed DurationMs + RowCount recorded"]
+    COMPLETE --> P3[SaveChangesAsync - persist Completed + OutputFiles]
+    P3 --> RESP([201 Created - ReportExecutionDto])
 ```
 
 ---
@@ -289,15 +309,15 @@ flowchart TD
 stateDiagram-v2
     direction LR
 
-    [*] --> Queued : ExecuteReportCommand accepted
+    [*]      --> Queued    : ExecuteReportCommand accepted
 
-    Queued --> Running   : Engine picks up job
-    Queued --> Cancelled : Cancel requested
+    Queued   --> Running   : Engine picks up the job
+    Queued   --> Cancelled : Cancel requested before processing
 
-    Running --> Completed : All formats rendered & stored
-    Running --> Failed    : Query/render/storage error
-    Running --> TimedOut  : ExecutionTimeoutSeconds exceeded
-    Running --> Cancelled : Cancel requested mid-run
+    Running  --> Completed : All formats rendered and stored
+    Running  --> Failed    : Query / render / storage error
+    Running  --> TimedOut  : ExecutionTimeoutSeconds exceeded
+    Running  --> Cancelled : Cancel requested mid-run
 
     Completed --> [*]
     Failed    --> [*]
@@ -311,16 +331,41 @@ stateDiagram-v2
 
 ### Reporting Module
 
-The core module — manages the full report lifecycle.
+The core module — manages the full lifecycle from report design to execution output.
 
-#### Domain Aggregates
+#### Layer responsibilities
+
+| Layer | Project | Responsibility |
+|-------|---------|---------------|
+| API | Reporting.Api | ReportingController, request/response models, DI entry point AddReportingApi() |
+| Application | Reporting.Application | MediatR commands and queries, FluentValidation validators, DTOs, ValidationPipelineBehaviour |
+| Domain | Reporting.Domain | ReportDefinition and ReportExecution aggregates, child entities, enums, Guard, ReportingDomainException |
+| Infrastructure | Reporting.Infrastructure | ReportingDbContext (EF Core / Npgsql), EF configurations, migrations, service implementations |
+
+#### Domain aggregates
 
 | Aggregate | Child Entities | Description |
 |-----------|---------------|-------------|
-| `ReportDefinition` | `ReportDataSource`, `ReportParameter` | Blueprint: metadata, parameters, data sources, template reference |
-| `ReportExecution` | `ReportOutputFile` | A single run: status tracking, timing, output files |
+| ReportDefinition | ReportDataSource, ReportParameter | Design-time blueprint: name, category, template reference, data sources, parameters |
+| ReportExecution | ReportOutputFile | Runtime run record: status, timing, parameters used, rendered output files |
 
-#### Feature Slices (`Reporting.Application/Features/`)
+#### Feature slices — ReportDefinitions
+
+| Slice | Type | Method | Endpoint | Success |
+|-------|------|--------|----------|---------|
+| Create | Command | POST | /report-definitions | 201 + ReportDefinitionDto |
+| Update | Command | PUT | /report-definitions/{id} | 200 + ReportDefinitionDto |
+| Activate | Command | POST | /report-definitions/{id}/activate | 200 + ReportDefinitionDto |
+| Deactivate | Command | POST | /report-definitions/{id}/deactivate | 200 + ReportDefinitionDto |
+| AssignTemplate | Command | POST | /report-definitions/{id}/assign-template | 200 + ReportDefinitionDto |
+| AddDataSource | Command | POST | /report-definitions/{id}/data-sources | 201 + ReportDataSourceDto |
+| UpdateDataSource | Command | PUT | /report-definitions/{id}/data-sources/{dsId} | 200 + ReportDataSourceDto |
+| RemoveDataSource | Command | DELETE | /report-definitions/{id}/data-sources/{dsId} | 204 No Content |
+| GetDataSources | Query | GET | /report-definitions/{id}/data-sources | 200 + IReadOnlyList<ReportDataSourceDto> |
+| GetDataSourceById | Query | GET | /report-definitions/{id}/data-sources/{dsId} | 200 + ReportDataSourceDto |
+| AddParameter | Command | POST | /report-definitions/{id}/parameters | 200 + ReportDefinitionDto |
+| GetById | Query | GET | /report-definitions/{id} | 200 + ReportDefinitionDto |
+| GetList | Query | GET | /report-definitions | 200 + PagedResult<ReportDefinitionDto> |
 
 **ReportDefinitions**
 
@@ -340,73 +385,101 @@ The core module — manages the full report lifecycle.
 | `GetById`           | Query   | `GET /report-definitions/{id}` | `ReportDefinitionDto` |
 | `GetList`           | Query   | `GET /report-definitions` | `PagedResult<ReportDefinitionDto>` |
 
-**ReportExecutions**
+#### Feature slices — ReportExecutions
 
-| Slice | Type | HTTP | Returns |
-|-------|------|------|---------|
-| `Execute` | Command | `POST /executions` | `ReportExecutionDto` |
-| `GetHistory` | Query | `GET /executions` | `PagedResult<ReportExecutionDto>` |
+| Slice | Type | Method | Endpoint | Success |
+|-------|------|--------|----------|---------|
+| Execute | Command | POST | /executions | 201 + ReportExecutionDto |
+| GetHistory | Query | GET | /executions | 200 + PagedResult<ReportExecutionDto> |
 
-#### Data Source Types
+#### DTOs
 
-| Enum Value | Description |
-|-----------|-------------|
-| `SqlQuery` | Direct SQL `SELECT` against a named connection string |
-| `StoredProcedure` | Schema-qualified stored procedure name |
-| `WebService` | REST/SOAP endpoint path or operation name |
-| `Json` | JSONPath selector or static payload |
-| `Xml` | XPath selector or static document |
-| `OData` | OData v4 query string options |
-| `InMemory` | .NET object model provided by host |
-| `Custom` | Pluggable data source registered via extension API |
+| DTO | Key Fields |
+|-----|-----------|
+| ReportDefinitionDto | Id, Name, Description, Category, SubCategory, TemplateId, TemplatePath, Status, IsHidden, ExecutionTimeoutSeconds, MaxRowCount, Parameters[], DataSources[], audit fields |
+| ReportDataSourceDto | Id, ReportDefinitionId, Name, DataSourceType, ConnectionStringName, QueryText, SortOrder |
+| ReportParameterDto | Id, ReportDefinitionId, Name, DisplayName, ParameterType, IsRequired, DefaultValue, SortOrder, IsVisible, Description |
+| ReportExecutionDto | Id, ReportDefinitionId, ReportName, ParametersJson, RequestedFormats[], Status, StartedAt, CompletedAt, DurationMs, ErrorMessage, RowCount, TriggeredBy, CorrelationId, OutputFiles[], audit fields |
+| ReportOutputFileDto | Id, ExecutionId, Format, FilePath, FileSizeBytes, CreatedAt |
 
-#### Infrastructure Services
+#### Enumerations
 
-| Interface | Current Implementation | Description |
-|-----------|----------------------|-------------|
-| `IReportingDbContext` | `ReportingDbContext` (EF Core / PostgreSQL) | Unit-of-work |
-| `IReportQueryExecutor` | `NotImplementedReportQueryExecutor` | Executes DS queries → JSON payload |
-| `IReportRenderer` | `HtmlReportRenderer` | Renders data → HTML then to target format |
-| `IHtmlToPdfRenderer` | `PlaywrightHtmlToPdfRenderer` | HTML → PDF via Playwright headless |
-| `IReportOutputStorage` | `NotImplementedReportStorageService` | Persists rendered files |
-| `ICurrentUserService` | `HttpContextCurrentUserService` | Resolves authenticated user identity |
-| `ITemplateVerifier` | `TemplateVerifier` | Validates template existence before execution |
+| Enum | Values |
+|------|--------|
+| ReportStatus | Draft · Active · Inactive · Archived |
+| ReportDataSourceType | SqlQuery · StoredProcedure · WebService · Json · Xml · OData · InMemory · Custom |
+| ReportParameterType | Text · WholeNumber · Numeric · Boolean · Date · DateTime · UniqueIdentifier · MultiValue · CascadingValue |
+| ReportExecutionStatus | Queued · Running · Completed · Failed · Cancelled · TimedOut |
+| ReportOutputFormat | Pdf · Excel · Word · Csv · Json · Xml · Html · Text |
+
+#### Infrastructure service implementations
+
+| Contract | Implementation | Scope | Notes |
+|----------|---------------|-------|-------|
+| IReportingDbContext | ReportingDbContext | Scoped | EF Core / Npgsql. Schema: eporting. |
+| ICurrentUserService | HttpContextCurrentUserService | Scoped | Reads IHttpContextAccessor. |
+| IReportQueryExecutor | NotImplementedReportQueryExecutor | Scoped | Stub — replace with real SQL/HTTP executor. |
+| IReportRenderer | HtmlReportRenderer | Scoped | Renders report data to HTML using template. |
+| IHtmlToPdfRenderer | PlaywrightHtmlToPdfRenderer | Singleton | Headless Chromium via Playwright. |
+| IReportOutputStorage | NotImplementedReportStorageService | Scoped | Stub — replace with blob/file storage. |
+| ITemplateVerifier | TemplateVerifier | Scoped | Cross-module call to Templates module. |
 
 ---
 
 ### Labeling Module
 
-Manages product/asset labeling workflows. Integrated into the API host via `AddLabelingInfrastructure`.
+Manages product and asset labeling workflows.
+
+- **Registered in host:** AddLabelingApplication() + AddLabelingInfrastructure(configuration).
+- Database: LabelingDb connection string (PostgreSQL).
+- Controllers are served directly from the ApiHost assembly.
 
 ---
 
 ### Printing Module
 
-Handles print job scheduling and dispatch. Contains its own domain model with unit tests.
+Handles print job scheduling and dispatch.
+
+- All four layers: Printing.Api, Printing.Application, Printing.Domain, Printing.Infrastructure.
+- Unit tests: Printing.Domain.UnitTests, Printing.Application.UnitTests.
 
 ---
 
 ### Designer Module
 
-Report template visual design features. Includes domain and application unit tests.
+Report template visual design features.
+
+- All four layers: Designer.Api, Designer.Application, Designer.Domain, Designer.Infrastructure.
+- DesignerController registered in the host via AddApplicationPart.
+- Unit tests: Designer.Domain.UnitTests, Designer.Application.UnitTests.
 
 ---
 
 ### Scheduling Module
 
-Recurring job and cron-based scheduling. Contains domain and application test suites.
+Recurring job and cron-based report scheduling.
+
+- All four layers present.
+- Unit tests: Scheduling.Domain.UnitTests, Scheduling.Application.UnitTests.
 
 ---
 
 ### Dashboard Module
 
-Aggregated metrics and KPI views. Contains domain and application test suites.
+Aggregated metrics and KPI views.
+
+- All four layers present.
+- Unit tests: Dashboard.Domain.UnitTests, Dashboard.Application.UnitTests.
 
 ---
 
 ### Templates Module
 
-Manages report template assets (file references, versioning). Exposes controllers via `TemplatesController`.
+Manages report template assets — file references and versioning.
+
+- **Registered in host:** AddTemplatesApi(configuration).
+- Database: TemplatesDb connection string.
+- TemplatesController registered via AddApplicationPart.
 
 ---
 
@@ -414,60 +487,81 @@ Manages report template assets (file references, versioning). Exposes controller
 
 ### SharedKernel
 
-Cross-cutting primitives used by all modules:
-
 | Type | Description |
 |------|-------------|
-| `Result<T>` | Discriminated union — success value **or** `AppError`; implicit conversion from both |
-| `AppError` | Typed immutable error: `NotFound`, `Conflict`, `Validation`, `DomainViolation`, `Unexpected` |
-| `PagedResult<T>` | Paged envelope with `TotalPages`, `HasNextPage`, `HasPreviousPage` |
-| `ICurrentUserService` | Abstracts authenticated user identity (HTTP context or `"system"` for background) |
-| `IDateTimeProvider` | Abstracts `DateTimeOffset.UtcNow` for deterministic testing |
+| `Result<T>` | Discriminated union — success value **or** `AppError`. Implicit conversion from both. |
+| `AppError` | Typed immutable error with `Code` + `Message`. Factories: `NotFound`, `Conflict`, `Validation`, `DomainViolation`, `Unexpected`. |
+| `PagedResult<T>` | Paged envelope: `Items`, `TotalCount`, `Page`, `PageSize`, `TotalPages`, `HasNextPage`, `HasPreviousPage`. |
+| `ICurrentUserService` | Abstracts authenticated identity. HTTP reads `IHttpContextAccessor`; background returns `"system"`. |
+| `IDateTimeProvider` | Abstracts `DateTimeOffset.UtcNow` for deterministic testing. |
 
 ### Abstractions
 
 | Type | Description |
 |------|-------------|
-| `IRepository<TEntity, TId>` | Generic repository contract: `GetByIdAsync`, `GetAllAsync`, `AddAsync`, `UpdateAsync`, `DeleteAsync` |
+| `IRepository<TEntity, TId>` | Generic contract: `GetByIdAsync`, `GetAllAsync`, `AddAsync`, `UpdateAsync`, `DeleteAsync`. |
 
 ---
 
 ## Hosts
 
-### ApiHost (`ReportEngine.ApiHost`)
+### ApiHost — `ReportEngine.ApiHost`
 
-ASP.NET Core Web API that composes all module controllers.
+ASP.NET Core 10 Web API. Entry point: `Program.cs`.
 
-- Registers module services via `AddReportingApi()`, `AddLabelingInfrastructure()`, `AddTemplatesApi()`.
-- Exposes Swagger/OpenAPI at `/swagger` in development.
-- Loads controllers from module assemblies via `AddApplicationPart`.
-- Configures `IHttpContextAccessor` for `ICurrentUserService`.
+```csharp
+builder.Services
+    .AddControllers()
+    .AddApplicationPart(typeof(ReportingController).Assembly)  // Reporting.Api
+    .AddApplicationPart(typeof(TemplatesController).Assembly); // Templates.Api
 
-### WorkerHost (`ReportEngine.WorkerHost`)
+builder.Services.AddLabelingApplication();
+builder.Services.AddLabelingInfrastructure(configuration);
+builder.Services.AddReportingApi(configuration);  // see chain below
+builder.Services.AddTemplatesApi(configuration);
+```
 
-.NET Worker Service for background processing (scheduled report runs, event consumers, etc.).
+`AddReportingApi(config)` call chain:
 
-- Implements `BackgroundService`.
+```
+AddReportingApi(config)
+  +-- AddReportingInfrastructure(config)
+  |     DbContext (Npgsql), IReportingDbContext, ICurrentUserService,
+  |     IReportQueryExecutor, IReportRenderer, IHtmlToPdfRenderer,
+  |     IReportOutputStorage, ITemplateVerifier, HtmlRendererOptions
+  +-- AddReportingApplication()
+        MediatR handlers, open-generic ValidationPipelineBehaviour,
+        FluentValidation validators (all from assembly, includeInternalTypes: true)
+```
+
+- Swagger UI at `/swagger` in Development.
+- `IHttpContextAccessor` registered for `ICurrentUserService`.
+
+### WorkerHost — `ReportEngine.WorkerHost`
+
+.NET 10 Generic Worker Service for background tasks (scheduled executions, event consumers).
+
+- Extends `BackgroundService`.
 - Containerised via `Dockerfile`.
 
 ---
 
 ## Tech Stack
 
-| Concern | Library / Technology |
-|---------|---------------------|
+| Concern | Technology |
+|---------|-----------|
 | Framework | .NET 10 |
 | Web API | ASP.NET Core 10 |
-| Background Service | .NET Generic Worker Host |
+| Background Service | .NET Generic Worker Host (`BackgroundService`) |
 | CQRS / Mediator | MediatR 14 |
 | Validation | FluentValidation 12 |
 | ORM | Entity Framework Core 10 |
-| Database | PostgreSQL (Npgsql provider) |
+| Database | PostgreSQL 15+ via Npgsql provider |
 | PDF Rendering | Playwright (headless Chromium) |
-| API Documentation | Swashbuckle / OpenAPI |
-| Logging | `Microsoft.Extensions.Logging` — compile-time `LoggerMessage.Define` |
-| Unit Testing | xUnit + FluentAssertions + Moq + EF Core InMemory |
-| Package Management | Central Package Management (`Directory.Packages.props`) |
+| API Documentation | Swashbuckle (Swagger / OpenAPI) |
+| Logging | `Microsoft.Extensions.Logging` — compile-time `LoggerMessage.Define` source generation |
+| Unit Testing | xUnit · Moq · EF Core InMemory |
+| Package Management | Central Package Management (`Directory.Packages.props`) — no `Version=` in individual `.csproj` files |
 
 ---
 
@@ -477,18 +571,23 @@ ASP.NET Core Web API that composes all module controllers.
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - PostgreSQL 15+
-- Playwright browsers (for PDF rendering): `playwright install chromium`
+- Playwright Chromium (for PDF rendering)
+
+```powershell
+dotnet tool install --global Microsoft.Playwright.CLI
+playwright install chromium
+```
 
 ### Configuration
 
-Update `src/Host/ReportEngine.ApiHost/appsettings.json` or use user secrets:
+Edit `src/Host/ReportEngine.ApiHost/appsettings.json` or use user secrets / environment variables:
 
 ```json
 {
   "ConnectionStrings": {
     "LabelingDb":  "Host=localhost;Port=5432;Database=LabelingDb;Username=dev;Password=dev",
     "ReportingDb": "Host=localhost;Port=5432;Database=ReportingDb;Username=dev;Password=dev",
-    "TemplatesDb": "Host=localhost;Port=5432;Database=ReportingDb;Username=dev;Password=dev"
+    "TemplatesDb": "Host=localhost;Port=5432;Database=TemplatesDb;Username=dev;Password=dev"
   },
   "Reporting": {
     "HtmlRenderer": {
@@ -501,70 +600,74 @@ Update `src/Host/ReportEngine.ApiHost/appsettings.json` or use user secrets:
 ### Apply Migrations
 
 ```powershell
-# Reporting module
+# Reporting module  (PostgreSQL schema: reporting)
 dotnet ef database update `
   --project src/Modules/Reporting/Reporting.Infrastructure `
   --startup-project src/Host/ReportEngine.ApiHost
 ```
 
-### Run the API Host
+### Run
 
 ```powershell
+# API Host
 dotnet run --project src/Host/ReportEngine.ApiHost
-```
 
-Swagger UI → `https://localhost:{port}/swagger`
-
-### Run the Worker Host
-
-```powershell
+# Worker Host
 dotnet run --project src/Host/ReportEngine.WorkerHost
 ```
+
+Swagger UI: `https://localhost:{port}/swagger`
 
 ---
 
 ## API Reference
 
-Base URL: `/api/reporting`
+Base URL: `http(s)://host/api/reporting`
+
+### Health
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/ping` | Returns `{ module, status, timestamp }` |
 
 ### Report Definitions
 
-| Method | Endpoint | Description | Success |
+| Method | Endpoint | Query / Body | Success |
 |--------|----------|-------------|---------|
-| `GET` | `/report-definitions` | Paged list (`category`, `searchTerm`, `status`, `includeHidden`, `page`, `pageSize`) | 200 |
-| `GET` | `/report-definitions/{id}` | Full definition with parameters & data sources | 200 |
-| `POST` | `/report-definitions` | Create in `Draft` status | 201 |
-| `PUT` | `/report-definitions/{id}` | Update name, category, description | 200 |
-| `POST` | `/report-definitions/{id}/activate` | `Draft`/`Inactive` → `Active` | 200 |
-| `POST` | `/report-definitions/{id}/deactivate` | `Active` → `Inactive` | 200 |
-| `POST` | `/report-definitions/{id}/assign-template` | Attach template file reference | 200 |
+| `GET` | `/report-definitions` | `?category` `?searchTerm` `?status` `?includeHidden` `?page` `?pageSize` | `200` |
+| `GET` | `/report-definitions/{id}` | — | `200` |
+| `POST` | `/report-definitions` | `{ name, category, description?, subCategory? }` | `201` |
+| `PUT` | `/report-definitions/{id}` | `{ name, category, description?, subCategory? }` | `200` |
+| `POST` | `/report-definitions/{id}/activate` | — | `200` |
+| `POST` | `/report-definitions/{id}/deactivate` | — | `200` |
+| `POST` | `/report-definitions/{id}/assign-template` | `{ templateId, templatePath }` | `200` |
 
-### DataSources
+### Data Sources
 
-| Method | Endpoint | Description | Success |
-|--------|----------|-------------|---------|
-| `POST` | `/report-definitions/{id}/data-sources` | Add a new data source | 201 |
-| `GET` | `/report-definitions/{id}/data-sources` | List all data sources (ordered by `sortOrder`) | 200 |
-| `GET` | `/report-definitions/{id}/data-sources/{dsId}` | Get single data source | 200 |
-| `PUT` | `/report-definitions/{id}/data-sources/{dsId}` | Update all mutable fields | 200 |
-| `DELETE` | `/report-definitions/{id}/data-sources/{dsId}` | Remove data source | 204 |
+| Method | Endpoint | Body | Success |
+|--------|----------|------|---------|
+| `POST` | `/report-definitions/{id}/data-sources` | `{ name, dataSourceType, connectionStringName, queryText, sortOrder }` | `201` |
+| `GET` | `/report-definitions/{id}/data-sources` | — | `200` |
+| `GET` | `/report-definitions/{id}/data-sources/{dsId}` | — | `200` |
+| `PUT` | `/report-definitions/{id}/data-sources/{dsId}` | `{ name, dataSourceType, connectionStringName, queryText, sortOrder }` | `200` |
+| `DELETE` | `/report-definitions/{id}/data-sources/{dsId}` | — | `204` |
 
 ### Parameters
 
-| Method | Endpoint | Description | Success |
-|--------|----------|-------------|---------|
-| `POST` | `/report-definitions/{id}/parameters` | Add an input parameter | 200 |
+| Method | Endpoint | Body | Success |
+|--------|----------|------|---------|
+| `POST` | `/report-definitions/{id}/parameters` | `{ name, displayName, parameterType, isRequired, defaultValue?, sortOrder, isVisible, description? }` | `200` |
 
 ### Report Executions
 
-| Method | Endpoint | Description | Success |
+| Method | Endpoint | Query / Body | Success |
 |--------|----------|-------------|---------|
-| `POST` | `/executions` | Execute a report (trigger full pipeline) | 201 |
-| `GET` | `/executions` | Paged history (`reportDefinitionId`, `triggeredBy`, `status`, `page`, `pageSize`) | 200 |
+| `POST` | `/executions` | `{ reportDefinitionId, parametersJson, requestedFormats, correlationId? }` | `201` |
+| `GET` | `/executions` | `?reportDefinitionId` `?triggeredBy` `?status` `?page` `?pageSize` | `200` |
 
 ### Error Responses
 
-All failures follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457):
+All failures conform to [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457):
 
 ```json
 {
@@ -576,388 +679,50 @@ All failures follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rf
 
 | `AppError.Code` | HTTP Status |
 |----------------|------------|
-| `*.NotFound` | 404 |
-| `Validation` | 422 |
-| `Conflict` | 409 |
-| `DomainViolation` | 422 |
-| anything else | 500 |
+| `*.NotFound` | `404 Not Found` |
+| `Validation` | `422 Unprocessable Entity` |
+| `Conflict` | `409 Conflict` |
+| `DomainViolation` | `422 Unprocessable Entity` |
+| anything else | `500 Internal Server Error` |
 
 ---
 
 ## Testing
 
 ```powershell
-# Run all tests
+# All modules
 dotnet test
 
-# Reporting module only
+# Reporting domain invariants only
 dotnet test tests/Modules/Reporting/Reporting.Domain.UnitTests
+
+# Reporting application handlers only
 dotnet test tests/Modules/Reporting/Reporting.Application.UnitTests
 ```
 
-### Test coverage — Reporting module
+### Test inventory — Reporting module
 
-| Test Class | Tests | Layer | What is covered |
-|-----------|-------|-------|----------------|
-| `ReportDefinitionDataSourceTests` | 16 | Domain | `AddDataSource`, `UpdateDataSource`, `RemoveDataSource` — all invariants, guard clauses, archived immutability, `Publish` precondition |
-| `ReportDataSourceHandlerTests` | 14 | Application | All 4 handlers (Get list, Get by Id, Update, Remove) — happy path + every error path via EF InMemory |
+| Project | Test Class | Tests | Scope |
+|---------|-----------|-------|-------|
+| `Reporting.Domain.UnitTests` | `ReportDefinitionDataSourceTests` | 16 | Pure domain — aggregate invariants, guard clauses, lifecycle transitions, `Publish` precondition |
+| `Reporting.Application.UnitTests` | `ReportDataSourceHandlerTests` | 14 | Application handlers — full execution with EF Core InMemory + Moq |
 
 ### Testing approach
 
-- **Domain tests** — pure in-memory, no mocks, exercise aggregate invariants directly.
-- **Application tests** — use **EF Core InMemory** provider (`InMemoryReportingDbContext`) and **Moq** for `ICurrentUserService`. Handlers are tested end-to-end through the full application layer including persistence.
-- **No suppression** — all CA rules (CA1707, CA1001) are **fixed in code**, not suppressed in `.editorconfig`.
+| Layer | Strategy |
+|-------|---------|
+| **Domain** | Pure in-process. No mocks, no I/O. Exercises aggregate methods directly; asserts on state or caught `ReportingDomainException`. |
+| **Application** | `InMemoryReportingDbContext` (EF Core InMemory provider) substitutes PostgreSQL. `ICurrentUserService` mocked with Moq. Handlers tested end-to-end including EF change tracker. |
+| **Code quality** | All Roslyn CA rules are **fixed in code** — zero suppressions in `.editorconfig`. CA1707 → PascalCase test method names. CA1001 → `IDisposable` implemented alongside `IAsyncLifetime`. |
 
 ---
 
 ## Contributing
 
-1. Branch from `features/` prefix (e.g. `features/my-feature`).
-2. Follow the vertical-slice pattern — new feature files go in `Features/<Aggregate>/<SliceName>/`.
-3. Add a FluentValidation validator for every command/query.
-4. All test method names must be **PascalCase** (CA1707 — no underscores).
-5. New cross-cutting types belong in `SharedKernel`, not inside a module.
-6. Do not add direct project references between modules.
+1. Branch with the `features/` prefix — e.g. `features/my-feature`.
+2. Follow the **vertical-slice** pattern: new feature files go in `Features/<Aggregate>/<SliceName>/`.
+3. Add a FluentValidation validator for every command and query.
+4. Test method names must be **PascalCase** (CA1707 — no suppressions).
+5. New cross-cutting types belong in `SharedKernel`, never inside a module.
+6. Never add direct project-to-project references between modules.
 7. Run `dotnet build` and `dotnet test` before opening a pull request.
-
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [API Reference](#api-reference)
-- [Testing](#testing)
-- [Contributing](#contributing)
-
----
-
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                        Hosts                            │
-│   ApiHost (ASP.NET Core)   │   WorkerHost (.NET Worker) │
-└───────────────┬─────────────────────────┬───────────────┘
-                │                         │
-┌───────────────▼─────────────────────────▼───────────────┐
-│                       Modules                           │
-│  Reporting │ Labeling │ Printing │ Designer │ ...       │
-│  ┌────────┐ Each module contains:                       │
-│  │  .Api  │  ← HTTP controllers / endpoints            │
-│  │  .App  │  ← Commands, Queries (MediatR/CQRS)        │
-│  │  .Dom  │  ← Aggregates, Entities, Domain Events     │
-│  │  .Inf  │  ← EF Core, Repositories, Services         │
-│  └────────┘                                             │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────┐
-│                    Building Blocks                      │
-│  SharedKernel │ Abstractions │ Contracts │ Infrastructure│
-└─────────────────────────────────────────────────────────┘
-```
-
-Each module is **fully self-contained** — its own database schema, its own migration history, and its own DI registration entry point. Modules communicate only through well-defined contracts in the BuildingBlocks layer, never through direct project references to each other.
-
----
-
-## Solution Structure
-
-```
-ReportEngine/
-├── src/
-│   ├── Host/
-│   │   ├── ReportEngine.ApiHost/          # ASP.NET Core Web API host
-│   │   └── ReportEngine.WorkerHost/       # .NET Worker Service host
-│   │
-│   ├── Modules/
-│   │   ├── Reporting/
-│   │   │   ├── Reporting.Api/                  # Controllers, request models
-│   │   │   ├── Reporting.Application/          # CQRS handlers, DTOs, validators
-│   │   │   ├── Reporting.Domain/               # Aggregates, enums, domain rules
-│   │   │   └── Reporting.Infrastructure/       # EF Core, services, migrations
-│   │   ├── Labeling/
-│   │   ├── Printing/
-│   │   ├── Designer/
-│   │   ├── Scheduling/
-│   │   ├── Dashboard/
-│   │   └── Templates/
-│   │
-│   └── BuildingBlocks/
-│       ├── ReportEngine.SharedKernel/     # Result<T>, AppError, PagedResult, ICurrentUserService, IDateTimeProvider
-│       ├── ReportEngine.Abstractions/     # IRepository<T>
-│       ├── ReportEngine.Contracts/        # Cross-module contracts
-│       └── ReportEngine.Infrastructure/  # Shared infrastructure helpers
-│
-└── tests/
-    └── Modules/
-        ├── Reporting/
-        │   ├── Reporting.Domain.UnitTests/
-        │   └── Reporting.Application.UnitTests/
-        ├── Printing/
-        ├── Designer/
-        ├── Scheduling/
-        ├── Dashboard/
-        └── Templates/
-```
-
----
-
-## Modules
-
-### Reporting Module
-
-The core module — manages the full report lifecycle.
-
-#### Domain concepts
-
-| Aggregate | Description |
-|-----------|-------------|
-| `ReportDefinition` | Blueprint for a report: metadata, parameters, data sources, template reference |
-| `ReportExecution` | A single run of a report definition, with status tracking and output files |
-
-#### Feature slices (`Reporting.Application/Features/`)
-
-**ReportDefinitions**
-
-| Slice | Type | Description |
-|-------|------|-------------|
-| `Create` | Command | Creates a new definition in `Draft` status |
-| `Update` | Command | Updates name, category, description |
-| `Activate` | Command | Transitions `Draft`/`Inactive` → `Active` |
-| `Deactivate` | Command | Transitions `Active` → `Inactive` |
-| `AddDataSource` | Command | Attaches a data source (SQL/SP/HTTP) to a definition |
-| `AddParameter` | Command | Declares an input parameter on a definition |
-| `GetById` | Query | Returns a full definition with parameters and data sources |
-| `GetList` | Query | Returns a paged, filtered list of definitions |
-
-**ReportExecutions**
-
-| Slice | Type | Description |
-|-------|------|-------------|
-| `Execute` | Command | Runs the full pipeline: validate → query → render → store |
-| `GetHistory` | Query | Returns a paged, filtered execution history |
-
-#### Contracts (`Reporting.Application/Contracts/`)
-
-| Interface | Responsibility |
-|-----------|---------------|
-| `IReportingDbContext` | EF Core unit-of-work abstraction |
-| `IReportQueryExecutor` | Executes data source queries, returns JSON payload |
-| `IReportRenderer` | Renders data payload into binary output (PDF, XLSX, …) |
-| `IReportOutputStorage` | Persists rendered files to durable storage |
-
-#### Report status lifecycle
-
-```
-Draft ──► Active ──► Inactive
-  ▲                     │
-  └─────────────────────┘  (re-activate)
-```
-
----
-
-### Labeling Module
-
-Manages product/asset labeling workflows. Integrated into the API host.
-
----
-
-### Printing Module
-
-Handles print job scheduling and dispatch. Contains its own domain model with unit tests.
-
----
-
-### Designer Module
-
-Report template visual design features. Includes domain and application unit tests.
-
----
-
-### Scheduling Module
-
-Recurring job and cron-based scheduling. Contains domain and application test suites.
-
----
-
-### Dashboard Module
-
-Aggregated metrics and KPI views. Contains domain and application test suites.
-
----
-
-### Templates Module
-
-Manages report template assets (file references, versioning).
-
----
-
-## Building Blocks
-
-### SharedKernel
-
-Cross-cutting primitives used by all modules:
-
-| Type | Description |
-|------|-------------|
-| `Result<T>` | Discriminated union — success value or `AppError` |
-| `AppError` | Typed, immutable error descriptor with factory methods (`NotFound`, `Conflict`, `Validation`, `DomainViolation`) |
-| `PagedResult<T>` | Paged envelope for list queries |
-| `ICurrentUserService` | Abstracts the authenticated user identity (HTTP or background worker) |
-| `IDateTimeProvider` | Abstracts `DateTimeOffset.UtcNow` for deterministic testing |
-
-### Abstractions
-
-| Type | Description |
-|------|-------------|
-| `IRepository<T>` | Generic repository contract |
-
----
-
-## Hosts
-
-### ApiHost (`ReportEngine.ApiHost`)
-
-ASP.NET Core Web API that composes all module controllers.
-
-- Registers module services via `AddReportingApi()`, `AddLabelingInfrastructure()`, etc.
-- Exposes Swagger/OpenAPI at `/swagger` in development.
-- Loads controllers from module assemblies via `AddApplicationPart`.
-
-### WorkerHost (`ReportEngine.WorkerHost`)
-
-.NET Worker Service for background processing (scheduled report runs, event consumers, etc.).
-
-- Implements `BackgroundService`.
-- Containerised via `Dockerfile`.
-
----
-
-## Tech Stack
-
-| Concern | Library / Technology |
-|---------|---------------------|
-| Framework | .NET 10 |
-| Web API | ASP.NET Core 10 |
-| Background Service | .NET Generic Worker Host |
-| CQRS / Mediator | MediatR |
-| Validation | FluentValidation |
-| ORM | Entity Framework Core 10 |
-| Database | PostgreSQL (Npgsql provider) |
-| API Documentation | Swashbuckle / OpenAPI |
-| Dependency Injection | Microsoft.Extensions.DependencyInjection |
-| Logging | Microsoft.Extensions.Logging (structured, `LoggerMessage.Define`) |
-| Testing | xUnit (inferred from test projects) |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- PostgreSQL instance (see connection strings below)
-
-### Configuration
-
-Update `src/Host/ReportEngine.ApiHost/appsettings.json` (or use user secrets / environment variables):
-
-```json
-{
-  "ConnectionStrings": {
-    "LabelingDb":  "Host=localhost;Port=5432;Database=LabelingDb;Username=dev;Password=dev",
-    "ReportingDb": "Host=localhost;Port=5432;Database=ReportingDb;Username=dev;Password=dev"
-  }
-}
-```
-
-### Apply Migrations
-
-```powershell
-# Reporting module
-dotnet ef database update `
-  --project src/Modules/Reporting/Reporting.Infrastructure `
-  --startup-project src/Host/ReportEngine.ApiHost
-```
-
-### Run the API Host
-
-```powershell
-dotnet run --project src/Host/ReportEngine.ApiHost
-```
-
-Swagger UI: `https://localhost:{port}/swagger`
-
-### Run the Worker Host
-
-```powershell
-dotnet run --project src/Host/ReportEngine.WorkerHost
-```
-
----
-
-## API Reference
-
-Base URL: `/api/reporting`
-
-### Report Definitions
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/report-definitions` | Paged list — query params: `category`, `searchTerm`, `status`, `includeHidden`, `page`, `pageSize` |
-| `GET` | `/report-definitions/{id}` | Get by id (includes parameters & data sources) |
-| `POST` | `/report-definitions` | Create (`name`, `category`, `description?`, `subCategory?`) |
-| `PUT` | `/report-definitions/{id}` | Update metadata |
-| `POST` | `/report-definitions/{id}/activate` | Activate |
-| `POST` | `/report-definitions/{id}/deactivate` | Deactivate |
-| `POST` | `/report-definitions/{id}/data-sources` | Add data source |
-| `POST` | `/report-definitions/{id}/parameters` | Add parameter |
-
-### Report Executions
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/executions` | Execute a report (`reportDefinitionId`, `parametersJson`, `requestedFormats`, `correlationId?`) |
-| `GET` | `/executions` | Paged history — query params: `reportDefinitionId`, `triggeredBy`, `status`, `page`, `pageSize` |
-
-### Error responses
-
-All failure responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457):
-
-```json
-{
-  "title": "Conflict",
-  "detail": "A report named 'Sales Summary' already exists in category 'Finance'.",
-  "status": 409
-}
-```
-
-| `AppError.Code` | HTTP Status |
-|----------------|------------|
-| `*.NotFound` | 404 |
-| `Validation` | 422 |
-| `Conflict` | 409 |
-| `DomainViolation` | 422 |
-| anything else | 500 |
-
----
-
-## Testing
-
-```powershell
-# Run all tests
-dotnet test
-
-# Run a specific module
-dotnet test tests/Modules/Reporting/Reporting.Application.UnitTests
-```
-
-Test projects mirror the source structure under `tests/Modules/`.
-
----
-
-## Contributing
-
-1. Branch from `develop`.
-2. Follow the vertical-slice pattern — new features go in `Features/<Aggregate>/<SliceName>/`.
-3. Add a FluentValidation validator for every command/query.
-4. New cross-cutting types belong in `SharedKernel`, not inside a module.
-5. Do not add direct project references between modules.
-6. Run `dotnet build` and `dotnet test` before opening a pull request.

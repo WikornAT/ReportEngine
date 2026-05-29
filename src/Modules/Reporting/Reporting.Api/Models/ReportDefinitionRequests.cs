@@ -48,3 +48,13 @@ public sealed record AssignTemplateRequest(
     Guid TemplateId,
     string TemplatePath);
 
+/// <summary>
+/// Request body for POST /api/v1/reports/{reportId}/preview-html
+/// and POST /api/v1/reports/{reportId}/render-pdf.
+/// </summary>
+/// <param name="ParametersJson">JSON object of parameter values, e.g. {"invoiceNo":"INV-001"}. Defaults to empty object.</param>
+/// <param name="TriggeredBy">Identity of the caller for audit log. Defaults to the authenticated user name.</param>
+public sealed record RenderReportRequest(
+    string? ParametersJson = "{}",
+    string? TriggeredBy = null);
+

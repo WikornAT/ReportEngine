@@ -9,6 +9,7 @@ internal static class TemplateMappingExtensions
         new(
             Id: t.Id,
             Name: t.Name,
+            TemplateCode: t.TemplateCode,
             Description: t.Description,
             HtmlContent: t.HtmlContent,
             CssContent: t.CssContent,

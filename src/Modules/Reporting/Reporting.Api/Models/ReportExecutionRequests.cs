@@ -8,3 +8,6 @@ public sealed record ExecuteReportRequest(
     string ParametersJson,
     IReadOnlyList<ReportOutputFormat> RequestedFormats,
     string? CorrelationId);
+
+/// <summary>Request body for POST /api/reporting/report-definitions/{id}/render-pdf</summary>
+public sealed record RenderReportPdfRequest(string ParametersJson = "{}");

@@ -21,6 +21,11 @@
     <ProjectReference Include="..\..\Modules\Labeling\Labeling.Infrastructure\Labeling.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Reporting\Reporting.Api\Reporting.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Templates\Templates.Api\Templates.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Designer\Designer.Api\Designer.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\fonts\" />
   </ItemGroup>
 
 </Project>

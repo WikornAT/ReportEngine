@@ -17,6 +17,7 @@ public sealed record UpsertReportTemplateCommand(
     string HtmlContent,
     string? CssContent,
     string? Description,
+    string? TemplateCode,
     PaperSize PaperSize,
     PageOrientation Orientation,
     int WidthPx,

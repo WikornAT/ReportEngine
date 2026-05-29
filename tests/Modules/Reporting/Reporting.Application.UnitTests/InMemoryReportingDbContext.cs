@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 using Reporting.Application.Contracts;
+using Reporting.Domain.RenderLogs;
 using Reporting.Domain.ReportDefinitions;
 using Reporting.Domain.ReportExecutions;
 
@@ -20,6 +21,7 @@ internal sealed class InMemoryReportingDbContext : DbContext, IReportingDbContex
 
     public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
     public DbSet<ReportExecution> ReportExecutions => Set<ReportExecution>();
+    public DbSet<RenderLog> RenderLogs => Set<RenderLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

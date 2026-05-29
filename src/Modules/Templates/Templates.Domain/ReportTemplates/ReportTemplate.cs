@@ -30,6 +30,12 @@ public sealed class ReportTemplate
     /// <summary>Human-readable name used to locate this template (unique).</summary>
     public string Name { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Optional short code used to look up a template programmatically (e.g. "INV-001", "PO-MAIN").
+    /// Must be unique across all templates when provided.
+    /// </summary>
+    public string? TemplateCode { get; private set; }
+
     /// <summary>Optional description of the template's purpose.</summary>
     public string? Description { get; private set; }
 
@@ -101,6 +107,7 @@ public sealed class ReportTemplate
         string htmlContent,
         string createdBy,
         string? description = null,
+        string? templateCode = null,
         string? cssContent = null,
         PaperSize paperSize = PaperSize.A4,
         PageOrientation orientation = PageOrientation.Portrait,
@@ -115,6 +122,7 @@ public sealed class ReportTemplate
         {
             Id = Guid.NewGuid(),
             Name = name,
+            TemplateCode = string.IsNullOrWhiteSpace(templateCode) ? null : templateCode.Trim(),
             Description = description,
             HtmlContent = htmlContent,
             CssContent = cssContent,
@@ -157,6 +165,7 @@ public sealed class ReportTemplate
         string htmlContent,
         string? cssContent,
         string? description,
+        string? templateCode,
         PaperSize paperSize,
         PageOrientation orientation,
         int widthPx,
@@ -169,6 +178,7 @@ public sealed class ReportTemplate
         HtmlContent = htmlContent;
         CssContent = cssContent;
         Description = description;
+        TemplateCode = string.IsNullOrWhiteSpace(templateCode) ? null : templateCode.Trim();
         PaperSize = paperSize;
         Orientation = orientation;
         WidthPx = widthPx;
