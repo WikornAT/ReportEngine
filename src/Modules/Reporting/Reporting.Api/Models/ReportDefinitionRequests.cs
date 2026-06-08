@@ -45,8 +45,7 @@ public sealed record AddReportParameterRequest(
 
 /// <summary>Request body for POST /api/reporting/report-definitions/{id}/assign-template</summary>
 public sealed record AssignTemplateRequest(
-    Guid TemplateId,
-    string TemplatePath);
+    Guid TemplateId);
 
 /// <summary>
 /// Request body for POST /api/v1/reports/{reportId}/preview-html

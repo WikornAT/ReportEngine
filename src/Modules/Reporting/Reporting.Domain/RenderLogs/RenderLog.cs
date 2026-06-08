@@ -53,6 +53,20 @@ public sealed class RenderLog
     /// <summary>Identity that triggered the render (user or system).</summary>
     public string TriggeredBy { get; private set; } = string.Empty;
 
+    // ── Per-phase timing ──────────────────────────────────────────────────────
+
+    /// <summary>Resolved parameters JSON captured at render time (for audit/replay).</summary>
+    public string? ParametersJson { get; private set; }
+
+    /// <summary>Time spent executing data source queries, in milliseconds.</summary>
+    public long? DataSourceExecutionMs { get; private set; }
+
+    /// <summary>Time spent binding the Scriban template, in milliseconds.</summary>
+    public long? TemplateBindingMs { get; private set; }
+
+    /// <summary>Time spent in the PDF renderer (Playwright), in milliseconds. Null for HTML previews.</summary>
+    public long? RenderMs { get; private set; }
+
     // ── ORM constructor ───────────────────────────────────────────────────────
 
     private RenderLog() { }
@@ -80,6 +94,24 @@ public sealed class RenderLog
     }
 
     // ── Transitions ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Records per-phase timing and the resolved parameters used for this render.
+    /// Call before <see cref="Succeed"/> or <see cref="Fail"/>.
+    /// </summary>
+    public void RecordPhaseTimings(
+        string? parametersJson,
+        long dataSourceExecutionMs,
+        long templateBindingMs,
+        long renderMs)
+    {
+        // Normalize: store null rather than an empty/whitespace string to avoid
+        // inserting invalid content into the jsonb column.
+        ParametersJson = string.IsNullOrWhiteSpace(parametersJson) ? null : parametersJson;
+        DataSourceExecutionMs = dataSourceExecutionMs;
+        TemplateBindingMs = templateBindingMs;
+        RenderMs = renderMs;
+    }
 
     public void Succeed(int outputSizeBytes)
     {

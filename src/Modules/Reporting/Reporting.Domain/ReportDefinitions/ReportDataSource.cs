@@ -75,6 +75,28 @@ public sealed class ReportDataSource
     /// </summary>
     public int SortOrder { get; private set; }
 
+    /// <summary>
+    /// Query execution timeout in seconds.
+    /// <see langword="null"/> means the default database timeout is used.
+    /// </summary>
+    public int? TimeoutSeconds { get; private set; }
+
+    /// <summary>
+    /// When <see langword="false"/>, this data source is skipped during execution.
+    /// Useful for disabling a source without deleting it.
+    /// </summary>
+    public bool IsActive { get; private set; } = true;
+
+    // ── Parameters ────────────────────────────────────────────────────────────
+
+    private readonly List<ReportDataSourceParameter> _parameters = [];
+
+    /// <summary>
+    /// Parameter mappings that bind <see cref="ReportParameter"/> runtime values to the
+    /// query/stored-procedure parameters declared in <see cref="QueryText"/>.
+    /// </summary>
+    public IReadOnlyList<ReportDataSourceParameter> Parameters => _parameters.AsReadOnly();
+
     // ── ORM constructor ───────────────────────────────────────────────────────
 
     /// <summary>
@@ -95,6 +117,8 @@ public sealed class ReportDataSource
     /// <param name="connectionStringName">Named connection string reference (non-empty).</param>
     /// <param name="queryText">Query, SP name, or endpoint (non-empty).</param>
     /// <param name="sortOrder">Display order (must be &gt; 0).</param>
+    /// <param name="timeoutSeconds">Optional query timeout in seconds.</param>
+    /// <param name="isActive">Whether this source participates in execution. Defaults to <see langword="true"/>.</param>
     /// <returns>A new <see cref="ReportDataSource"/> instance.</returns>
     internal static ReportDataSource Create(
         Guid reportDefinitionId,
@@ -102,7 +126,9 @@ public sealed class ReportDataSource
         ReportDataSourceType dataSourceType,
         string connectionStringName,
         string queryText,
-        int sortOrder)
+        int sortOrder,
+        int? timeoutSeconds = null,
+        bool isActive = true)
     {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
@@ -123,6 +149,8 @@ public sealed class ReportDataSource
             ConnectionStringName = connectionStringName,
             QueryText = queryText,
             SortOrder = sortOrder,
+            TimeoutSeconds = timeoutSeconds,
+            IsActive = isActive,
         };
     }
 
@@ -158,12 +186,16 @@ public sealed class ReportDataSource
     /// <param name="connectionStringName">New named connection string reference (non-empty).</param>
     /// <param name="queryText">New query, SP name, or endpoint (non-empty).</param>
     /// <param name="sortOrder">New display order.</param>
+    /// <param name="timeoutSeconds">Optional query timeout in seconds.</param>
+    /// <param name="isActive">Whether this source participates in execution.</param>
     internal void Update(
         string name,
         ReportDataSourceType dataSourceType,
         string connectionStringName,
         string queryText,
-        int sortOrder)
+        int sortOrder,
+        int? timeoutSeconds = null,
+        bool isActive = true)
     {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
@@ -180,5 +212,33 @@ public sealed class ReportDataSource
         ConnectionStringName = connectionStringName;
         QueryText = queryText;
         SortOrder = sortOrder;
+        TimeoutSeconds = timeoutSeconds;
+        IsActive = isActive;
+    }
+
+    /// <summary>
+    /// Adds a new parameter mapping to this data source.
+    /// </summary>
+    internal void AddParameter(
+        string sourceParameterName,
+        string reportParameterName,
+        string? dbType,
+        bool isRequired,
+        string? defaultValue)
+    {
+        _parameters.Add(ReportDataSourceParameter.Create(
+            Id, sourceParameterName, reportParameterName, dbType, isRequired, defaultValue));
+    }
+
+    /// <summary>
+    /// Removes the parameter mapping with the specified <paramref name="parameterId"/>.
+    /// </summary>
+    internal void RemoveParameter(Guid parameterId)
+    {
+        int index = _parameters.FindIndex(p => p.Id == parameterId);
+        if (index >= 0)
+        {
+            _parameters.RemoveAt(index);
+        }
     }
 }

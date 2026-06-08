@@ -187,6 +187,50 @@ public sealed class ReportTemplate
         Touch(modifiedBy);
     }
 
+    // ── Assets ────────────────────────────────────────────────────────────────
+
+    private readonly List<TemplateAsset> _assets = [];
+
+    /// <summary>Binary assets (images, fonts, stylesheets) registered for this template.</summary>
+    public IReadOnlyList<TemplateAsset> Assets => _assets.AsReadOnly();
+
+    /// <summary>Creates a new <see cref="TemplateAsset"/> and associates it with this template.</summary>
+    public TemplateAsset AddAsset(
+        TemplateAssetType assetType,
+        string fileName,
+        string contentType,
+        string relativePath,
+        string storagePath,
+        long sizeBytes,
+        string sha256Hash)
+    {
+        EnsureNotArchived();
+        Guid assetId = Guid.NewGuid();
+        string publicUrl = $"/api/templates/report-templates/{Id}/assets/{assetId}/content";
+        TemplateAsset asset = TemplateAsset.Create(
+            assetId, Id, assetType, fileName, contentType,
+            relativePath, storagePath, publicUrl, sizeBytes, sha256Hash);
+        _assets.Add(asset);
+        return asset;
+    }
+
+    // ── Versions ──────────────────────────────────────────────────────────────
+
+    private readonly List<TemplateVersion> _versions = [];
+
+    /// <summary>Immutable snapshots of this template's HTML/CSS at each version.</summary>
+    public IReadOnlyList<TemplateVersion> Versions => _versions.AsReadOnly();
+
+    /// <summary>
+    /// Creates a version snapshot of the template's current content and appends it to the history.
+    /// </summary>
+    public TemplateVersion TakeSnapshot(string createdBy, string? snapshotJson = null)
+    {
+        TemplateVersion version = TemplateVersion.Snapshot(this, createdBy, snapshotJson);
+        _versions.Add(version);
+        return version;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private void EnsureNotArchived()

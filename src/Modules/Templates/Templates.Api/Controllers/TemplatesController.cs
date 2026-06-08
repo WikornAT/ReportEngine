@@ -10,6 +10,10 @@ using Templates.Application.Features.ReportTemplates.GetAll;
 using Templates.Application.Features.ReportTemplates.GetById;
 using Templates.Application.Features.ReportTemplates.Publish;
 using Templates.Application.Features.ReportTemplates.Upsert;
+using Templates.Application.Features.TemplateAssets.GetAssetContent;
+using Templates.Application.Features.TemplateAssets.GetByTemplate;
+using Templates.Application.Features.TemplateImports.ImportHtml;
+using Templates.Application.Features.TemplateImports.ImportZip;
 
 namespace Templates.Api.Controllers;
 
@@ -81,6 +85,9 @@ public sealed class TemplatesController : ControllerBase
 
     /// <summary>Returns the resolved HTML content of a template for preview.</summary>
     [HttpGet("{id:guid}/preview")]
+    [Produces("text/html")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Preview(Guid id, CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetReportTemplateByIdQuery(id), cancellationToken);
@@ -98,7 +105,121 @@ public sealed class TemplatesController : ControllerBase
         return Content(html, "text/html");
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Import ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Imports a report template from a multipart/form-data upload containing
+    /// an HTML file and optional CSS file plus binary assets.
+    /// </summary>
+    [HttpPost("import-html")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> ImportHtml(
+        [FromForm] ImportHtmlTemplateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        byte[] htmlBytes = await ReadFormFileAsync(request.HtmlFile);
+        byte[]? cssBytes = request.CssFile is not null
+            ? await ReadFormFileAsync(request.CssFile)
+            : null;
+
+        var assetPairs = new Dictionary<string, byte[]>();
+        if (request.Assets is not null)
+        {
+            foreach (IFormFile asset in request.Assets)
+            {
+                byte[] bytes = await ReadFormFileAsync(asset);
+                assetPairs[asset.FileName] = bytes;
+            }
+        }
+
+        var command = new ImportHtmlTemplateCommand(
+            HtmlFileContent: htmlBytes,
+            HtmlFileName: request.HtmlFile.FileName,
+            CssFileContent: cssBytes,
+            CssFileName: request.CssFile?.FileName,
+            Assets: assetPairs,
+            TemplateCode: request.TemplateCode ?? string.Empty,
+            Name: request.Name,
+            Description: request.Description,
+            PaperSize: request.PaperSize,
+            Orientation: request.Orientation,
+            WidthPx: request.WidthPx,
+            HeightPx: request.HeightPx,
+            AllowExternalAssets: request.AllowExternalAssets);
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetById), new { id = result.Value.Template.Id }, result.Value)
+            : MapError(result);
+    }
+
+    /// <summary>
+    /// Imports a report template from a ZIP archive that contains
+    /// <c>template.html</c> at the root and optional assets.
+    /// </summary>
+    [HttpPost("import-zip")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> ImportZip(
+        [FromForm] ImportZipTemplateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        byte[] zipBytes = await ReadFormFileAsync(request.ZipFile);
+
+        var command = new ImportZipTemplateCommand(
+            ZipFileContent: zipBytes,
+            ZipFileName: request.ZipFile.FileName,
+            TemplateCode: request.TemplateCode ?? string.Empty,
+            Name: request.Name,
+            Description: request.Description,
+            PaperSize: request.PaperSize,
+            Orientation: request.Orientation,
+            WidthPx: request.WidthPx,
+            HeightPx: request.HeightPx,
+            AllowExternalAssets: request.AllowExternalAssets);
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetById), new { id = result.Value.Template.Id }, result.Value)
+            : MapError(result);
+    }
+
+    // ── Assets ────────────────────────────────────────────────────────────────
+
+    /// <summary>Lists all assets registered for a template.</summary>
+    [HttpGet("{id:guid}/assets")]
+    public async Task<IActionResult> GetAssets(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetTemplateAssetsQuery(id), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : MapError(result);
+    }
+
+    /// <summary>Serves the raw binary content of a template asset.</summary>
+    [HttpGet("{id:guid}/assets/{assetId:guid}/content")]
+    public async Task<IActionResult> GetAssetContent(
+        Guid id,
+        Guid assetId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetTemplateAssetContentQuery(id, assetId), cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return MapError(result);
+        }
+
+        AssetContentResult asset = result.Value;
+        return File(asset.Content, asset.ContentType, asset.FileName);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private static async Task<byte[]> ReadFormFileAsync(IFormFile file)
+    {
+        await using var stream = new MemoryStream((int)file.Length);
+        await file.CopyToAsync(stream);
+        return stream.ToArray();
+    }    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static ObjectResult MapError<T>(Result<T> result)
     {

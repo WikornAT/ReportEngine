@@ -6,10 +6,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using Reporting.Application.Contracts;
+using Reporting.Application.Models;
 using Reporting.Domain.Enums;
 using Reporting.Domain.ReportDefinitions;
 
-using Scriban;
 using Scriban.Runtime;
 using Templates.Application.Contracts;
 using Templates.Domain.Enums;
@@ -21,13 +21,14 @@ namespace Reporting.Infrastructure.Services;
 /// Renders a report by:
 /// <list type="number">
 ///   <item>Loading the <see cref="ReportTemplate"/> associated with the report definition.</item>
-///   <item>Merging the data JSON into the HTML via <c>{{key}}</c> token substitution.</item>
+///   <item>Building a <see cref="TemplateRenderContext"/> from the data JSON.</item>
+///   <item>Binding the template via <see cref="ITemplateBindingEngine"/> (Scriban).</item>
+///   <item>Injecting font CSS and template CSS into &lt;head&gt;.</item>
 ///   <item>
-///     For <see cref="ReportOutputFormat.Pdf"/>: delegating to <see cref="IHtmlToPdfRenderer"/>
-///     (Playwright/Chromium).
+///     For <see cref="ReportOutputFormat.Pdf"/>: delegating to <see cref="IHtmlToPdfRenderer"/>.
 ///   </item>
 ///   <item>
-///     For <see cref="ReportOutputFormat.Html"/>: returning the merged HTML directly.
+///     For <see cref="ReportOutputFormat.Html"/>: returning the bound HTML directly.
 ///   </item>
 /// </list>
 /// </summary>
@@ -48,6 +49,7 @@ internal sealed class HtmlReportRenderer : IReportRenderer
     private readonly IReportTemplateRepository _templateRepository;
     private readonly IReportingDbContext _reportingDbContext;
     private readonly IHtmlToPdfRenderer _pdfRenderer;
+    private readonly ITemplateBindingEngine _bindingEngine;
     private readonly HtmlRendererOptions _rendererOptions;
     private readonly ILogger<HtmlReportRenderer> _logger;
 
@@ -55,12 +57,14 @@ internal sealed class HtmlReportRenderer : IReportRenderer
         IReportTemplateRepository templateRepository,
         IReportingDbContext reportingDbContext,
         IHtmlToPdfRenderer pdfRenderer,
+        ITemplateBindingEngine bindingEngine,
         IOptions<HtmlRendererOptions> rendererOptions,
         ILogger<HtmlReportRenderer> logger)
     {
         _templateRepository = templateRepository;
         _reportingDbContext = reportingDbContext;
         _pdfRenderer = pdfRenderer;
+        _bindingEngine = bindingEngine;
         _rendererOptions = rendererOptions.Value;
         _logger = logger;
     }
@@ -72,9 +76,9 @@ internal sealed class HtmlReportRenderer : IReportRenderer
         CancellationToken cancellationToken = default)
     {
         _logRendering(_logger, reportDefinitionId, outputFormat.ToString(), null);
-        long started = Environment.TickCount64;
+        long totalStart = Environment.TickCount64;
 
-        // ── 1. Load report definition to get TemplateId ───────────────────
+        // ── 1. Load report definition ─────────────────────────────────────
         ReportDefinition? definition = await _reportingDbContext.ReportDefinitions
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == reportDefinitionId, cancellationToken);
@@ -92,7 +96,7 @@ internal sealed class HtmlReportRenderer : IReportRenderer
                 "Call AssignTemplate before executing.");
         }
 
-        // ── 2. Load template by its own Id ────────────────────────────────
+        // ── 2. Load template ──────────────────────────────────────────────
         ReportTemplate? template = await _templateRepository.GetByIdAsync(
             definition.TemplateId.Value, cancellationToken);
 
@@ -103,22 +107,27 @@ internal sealed class HtmlReportRenderer : IReportRenderer
                 $"'{definition.Name}' was not found in the Templates repository.");
         }
 
-        // ── 3. Validate template status ───────────────────────────────────
         if (template.Status != TemplateStatus.Active)
         {
             throw new InvalidOperationException(
                 $"Template '{template.Name}' is in '{template.Status}' status and cannot be used for rendering.");
         }
 
-        // ── 4. Merge data into HTML ────────────────────────────────────────
-        string mergedHtml = MergeData(template.HtmlContent, template.CssContent, dataJson);
+        // ── 3. Build TemplateRenderContext from dataJson ───────────────────
+        // dataJson may be a JSON object (single page) or a JSON array (multi-page).
+        string htmlWithCss = InjectCss(template.HtmlContent, template.CssContent);
 
-        // ── 5. Render ──────────────────────────────────────────────────────
+        long bindStart = Environment.TickCount64;
+        string boundHtml = await BindHtmlAsync(dataJson, definition, htmlWithCss, cancellationToken);
+        long templateBindingMs = Environment.TickCount64 - bindStart;
+
+        // ── 5. Render ─────────────────────────────────────────────────────
+        long renderStart = Environment.TickCount64;
         RenderedReport result;
 
         if (outputFormat == ReportOutputFormat.Html)
         {
-            byte[] htmlBytes = Encoding.UTF8.GetBytes(mergedHtml);
+            byte[] htmlBytes = Encoding.UTF8.GetBytes(boundHtml);
             result = new RenderedReport(
                 FileName: $"report_{reportDefinitionId:N}.html",
                 ContentType: "text/html; charset=utf-8",
@@ -129,7 +138,7 @@ internal sealed class HtmlReportRenderer : IReportRenderer
             HtmlPdfRenderOptions pdfOptions = BuildPdfOptions(template);
 
             byte[] pdfBytes = await _pdfRenderer.RenderPdfAsync(
-                mergedHtml, pdfOptions, cancellationToken);
+                boundHtml, pdfOptions, cancellationToken);
 
             result = new RenderedReport(
                 FileName: $"report_{reportDefinitionId:N}.pdf",
@@ -143,65 +152,186 @@ internal sealed class HtmlReportRenderer : IReportRenderer
                 "Use Html or Pdf.");
         }
 
-        _logRendered(_logger, reportDefinitionId, Environment.TickCount64 - started, null);
+        long renderMs = Environment.TickCount64 - renderStart;
 
-        return result;
+        _logRendered(_logger, reportDefinitionId, Environment.TickCount64 - totalStart, null);
+
+        return result with { PhaseTimings = new RenderPhaseTimings(0, templateBindingMs, renderMs) };
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Merges data JSON into the HTML template using Scriban.
-    /// Supports scalar tokens <c>{{ field }}</c>, loops <c>{{ for item in items }}...{{ end }}</c>,
-    /// conditionals, and all other Scriban template features.
+    /// Binds <paramref name="htmlWithCss"/> against <paramref name="dataJson"/>.
+    /// <para>
+    /// <b>Object</b>: single-page — returns one bound HTML string.<br/>
+    /// <b>Array</b>: multi-page — binds each element separately and concatenates the
+    /// resulting <c>&lt;body&gt;</c> contents inside a shared <c>&lt;html&gt;</c> wrapper,
+    /// inserting a <c>page-break-after: always</c> div between pages so Playwright
+    /// produces one PDF page per array element.
+    /// </para>
     /// </summary>
-    private static string MergeData(string htmlContent, string? cssContent, string dataJson)
+    private async Task<string> BindHtmlAsync(
+        string dataJson,
+        ReportDefinition definition,
+        string htmlWithCss,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(dataJson))
+        {
+            return await BindSinglePageAsync(dataJson, definition, htmlWithCss, cancellationToken);
+        }
+
+        using JsonDocument doc = JsonDocument.Parse(dataJson);
+
+        if (doc.RootElement.ValueKind != JsonValueKind.Array)
+        {
+            return await BindSinglePageAsync(dataJson, definition, htmlWithCss, cancellationToken);
+        }
+
+        // Multi-page: bind each element, then compose a single HTML document
+        var pageHtmlList = new List<string>();
+        foreach (JsonElement element in doc.RootElement.EnumerateArray())
+        {
+            string elementJson = element.GetRawText();
+            string pageHtml = await BindSinglePageAsync(elementJson, definition, htmlWithCss, cancellationToken);
+            pageHtmlList.Add(ExtractBodyContent(pageHtml));
+        }
+
+        return ComposeMultiPageHtml(htmlWithCss, pageHtmlList);
+    }
+
+    private async Task<string> BindSinglePageAsync(
+        string dataJson,
+        ReportDefinition definition,
+        string htmlWithCss,
+        CancellationToken cancellationToken)
+    {
+        ParseDataJson(dataJson, out Dictionary<string, object?> paramsDict, out Dictionary<string, object?> dataDict);
+        TemplateRenderContext renderContext = BuildRenderContext(definition, paramsDict, dataDict);
+        return await _bindingEngine.BindAsync(htmlWithCss, renderContext, cancellationToken);
+    }
+
+    /// <summary>Extracts the inner HTML of the &lt;body&gt; tag, or the full string if none found.</summary>
+    private static string ExtractBodyContent(string html)
+    {
+        int bodyStart = html.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
+        int bodyClose = bodyStart >= 0 ? html.IndexOf('>', bodyStart) : -1;
+        int bodyEnd   = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+
+        if (bodyStart < 0 || bodyClose < 0 || bodyEnd < 0)
+        {
+            return html;
+        }
+
+        return html[(bodyClose + 1)..bodyEnd];
+    }
+
+    /// <summary>
+    /// Wraps all page body fragments inside the outer HTML shell (head + styles) from
+    /// <paramref name="htmlTemplate"/>, separated by a page-break div.
+    /// </summary>
+    private static string ComposeMultiPageHtml(string htmlTemplate, IReadOnlyList<string> pageBodyFragments)
+    {
+        const string pageBreak = "<div style=\"page-break-after:always;\"></div>";
+
+        int bodyStart = htmlTemplate.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
+        int bodyClose = bodyStart >= 0 ? htmlTemplate.IndexOf('>', bodyStart) : -1;
+        int bodyEnd   = htmlTemplate.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+
+        string openTag  = bodyStart >= 0 && bodyClose >= 0
+            ? htmlTemplate[bodyStart..(bodyClose + 1)]
+            : "<body>";
+        string closeTag = "</body></html>";
+        string head     = bodyStart >= 0
+            ? htmlTemplate[..bodyStart]
+            : "<!DOCTYPE html><html>";
+
+        _ = bodyEnd; // used for reference only; we rebuild the body from fragments
+
+        string combinedBody = string.Join(pageBreak, pageBodyFragments);
+        return $"{head}{openTag}{combinedBody}{closeTag}";
+    }
+
+    /// <summary>
+    /// Parses a flat <paramref name="dataJson"/> string into two dictionaries.
+    /// Keys prefixed with <c>_data_</c> go to <paramref name="dataDict"/> (prefix stripped);
+    /// all other keys go to <paramref name="paramsDict"/>.
+    /// </summary>
+    private static void ParseDataJson(
+        string dataJson,
+        out Dictionary<string, object?> paramsDict,
+        out Dictionary<string, object?> dataDict)
+    {
+        paramsDict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        dataDict   = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(dataJson) || dataJson.Trim() == "{}")
+        {
+            return;
+        }
+
+        using JsonDocument doc = JsonDocument.Parse(dataJson);
+
+        foreach (JsonProperty prop in doc.RootElement.EnumerateObject())
+        {
+            object? value = JsonElementToValue(prop.Value);
+
+            if (prop.Name.StartsWith("_data_", StringComparison.OrdinalIgnoreCase))
+            {
+                dataDict[prop.Name[6..]] = value;
+            }
+            else
+            {
+                paramsDict[prop.Name] = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds a <see cref="TemplateRenderContext"/> from pre-resolved parameter and data
+    /// dictionaries. The dicts are produced by <see cref="ParseDataJson"/> (or supplied
+    /// directly by callers that have already executed data sources).
+    /// </summary>
+    private static TemplateRenderContext BuildRenderContext(
+        ReportDefinition definition,
+        IReadOnlyDictionary<string, object?> paramsDict,
+        IReadOnlyDictionary<string, object?> dataDict)
+    {
+        var system = new SystemContext(
+            Now: DateTimeOffset.UtcNow,
+            Today: DateOnly.FromDateTime(DateTime.UtcNow),
+            User: "system");
+
+        return new TemplateRenderContext(
+            Report: ReportMeta.From(definition),
+            Params: paramsDict,
+            Data: dataDict,
+            System: system);
+    }
+
+    private static string InjectCss(string htmlContent, string? cssContent)
     {
         string html = htmlContent;
 
-        // Inject font stylesheet link so @font-face rules are always available
+        // Inject font stylesheet so @font-face rules are always available
         const string FontCssLink = "<link rel=\"stylesheet\" href=\"/api/designer/fonts/css\">";
         if (!html.Contains("/api/designer/fonts/css", StringComparison.OrdinalIgnoreCase))
         {
             html = html.Replace("</head>", $"{FontCssLink}\n</head>", StringComparison.OrdinalIgnoreCase);
         }
 
-        // Inject supplementary CSS into <head> when present
+        // Inject template-specific CSS
         if (!string.IsNullOrWhiteSpace(cssContent))
         {
             string styleTag = $"\n<style>\n{cssContent}\n</style>\n";
             html = html.Replace("</head>", $"{styleTag}</head>", StringComparison.OrdinalIgnoreCase);
         }
 
-        if (string.IsNullOrWhiteSpace(dataJson) || dataJson == "{}")
-        {
-            return html;
-        }
-
-        // Build Scriban script object from the JSON payload
-        var scriptObject = new ScriptObject();
-
-        using JsonDocument doc = JsonDocument.Parse(dataJson);
-        foreach (JsonProperty property in doc.RootElement.EnumerateObject())
-        {
-            scriptObject.Add(
-                property.Name,
-                JsonElementToScribanValue(property.Value));
-        }
-
-        var context = new TemplateContext { StrictVariables = false };
-        context.PushGlobal(scriptObject);
-
-        Template scribanTemplate = Template.Parse(html);
-        return scribanTemplate.Render(context);
+        return html;
     }
 
-    /// <summary>
-    /// Converts a <see cref="JsonElement"/> to a CLR value that Scriban can work with.
-    /// Arrays become <see cref="List{T}"/> of <see cref="ScriptObject"/> (for objects)
-    /// or plain values (for primitive arrays).
-    /// </summary>
-    private static object? JsonElementToScribanValue(JsonElement element) =>
+    private static object? JsonElementToValue(JsonElement element) =>
         element.ValueKind switch
         {
             JsonValueKind.String  => element.GetString(),
@@ -209,21 +339,19 @@ internal sealed class HtmlReportRenderer : IReportRenderer
             JsonValueKind.True    => true,
             JsonValueKind.False   => false,
             JsonValueKind.Null    => null,
-            JsonValueKind.Array   => element.EnumerateArray()
-                                        .Select(JsonElementToScribanValue)
-                                        .ToList(),
-            JsonValueKind.Object  => JsonObjectToScriptObject(element),
+            JsonValueKind.Array   => element.EnumerateArray().Select(JsonElementToValue).ToList(),
+            JsonValueKind.Object  => JsonObjectToDict(element),
             _                     => element.GetRawText()
         };
 
-    private static ScriptObject JsonObjectToScriptObject(JsonElement element)
+    private static Dictionary<string, object?> JsonObjectToDict(JsonElement element)
     {
-        var obj = new ScriptObject();
+        var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (JsonProperty prop in element.EnumerateObject())
         {
-            obj.Add(prop.Name, JsonElementToScribanValue(prop.Value));
+            dict[prop.Name] = JsonElementToValue(prop.Value);
         }
-        return obj;
+        return dict;
     }
 
     private HtmlPdfRenderOptions BuildPdfOptions(ReportTemplate template)

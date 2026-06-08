@@ -61,5 +61,15 @@ internal sealed class ReportTemplateConfiguration : IEntityTypeConfiguration<Rep
         builder.HasIndex(x => x.Name).IsUnique();
         builder.HasIndex(x => x.TemplateCode).IsUnique()
             .HasFilter("\"TemplateCode\" IS NOT NULL");
+
+        builder.HasMany(x => x.Assets)
+            .WithOne()
+            .HasForeignKey(a => a.TemplateId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.Versions)
+            .WithOne()
+            .HasForeignKey(v => v.TemplateId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

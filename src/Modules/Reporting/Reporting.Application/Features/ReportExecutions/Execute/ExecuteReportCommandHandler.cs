@@ -131,7 +131,7 @@ internal sealed class ExecuteReportCommandHandler
         // ── 6. Execute queries and render ─────────────────────────────────────
         try
         {
-            string dataJson = await _queryExecutor.ExecuteAsync(
+            DataSourceExecutionResult executionResult = await _queryExecutor.ExecuteAsync(
                 reportDefinitionId: definition.Id,
                 parametersJson: request.ParametersJson,
                 cancellationToken: cancellationToken);
@@ -140,7 +140,7 @@ internal sealed class ExecuteReportCommandHandler
             {
                 RenderedReport rendered = await _renderer.RenderAsync(
                     reportDefinitionId: definition.Id,
-                    dataJson: dataJson,
+                    dataJson: executionResult.DataJson,
                     outputFormat: format,
                     cancellationToken: cancellationToken);
 

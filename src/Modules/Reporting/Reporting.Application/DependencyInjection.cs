@@ -7,6 +7,8 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 using Reporting.Application.Behaviours;
+using Reporting.Application.Contracts;
+using Reporting.Application.Services;
 
 namespace Reporting.Application;
 
@@ -37,6 +39,9 @@ public static class DependencyInjection
 
         // ── FluentValidation ──────────────────────────────────────────────────
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
+
+        // ── Application Services ──────────────────────────────────────────────
+        services.AddScoped<IParameterValidator, ParameterValidatorService>();
 
         return services;
     }

@@ -56,6 +56,13 @@ public sealed class ReportParameter
     public string? DefaultValue { get; private set; }
 
     /// <summary>
+    /// Optional JSON string that encodes additional validation rules for this parameter.
+    /// Example: <c>{"min":1,"max":9999}</c> or <c>{"pattern":"^[A-Z]{2}\\d{4}$"}</c>.
+    /// Evaluated by the parameter validator at render time.
+    /// </summary>
+    public string? ValidationRuleJson { get; private set; }
+
+    /// <summary>
     /// Display order in the parameter input form.  Lower values appear first.
     /// </summary>
     public int SortOrder { get; private set; }
@@ -91,6 +98,7 @@ public sealed class ReportParameter
     /// <param name="sortOrder">Display order in the UI form; must be &gt; 0.</param>
     /// <param name="isVisible">Whether to show the parameter in the UI.</param>
     /// <param name="description">Optional description or tooltip text.</param>
+    /// <param name="validationRuleJson">Optional JSON validation rule, e.g. <c>{"min":1,"max":9999}</c>.</param>
     /// <returns>A new <see cref="ReportParameter"/> instance.</returns>
     internal static ReportParameter Create(
         Guid reportDefinitionId,
@@ -101,7 +109,8 @@ public sealed class ReportParameter
         string? defaultValue,
         int sortOrder,
         bool isVisible,
-        string? description = null)
+        string? description = null,
+        string? validationRuleJson = null)
     {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(displayName, nameof(displayName));
@@ -129,6 +138,7 @@ public sealed class ReportParameter
             DefaultValue = defaultValue,
             SortOrder = sortOrder,
             IsVisible = isVisible,
+            ValidationRuleJson = validationRuleJson,
         };
     }
 
@@ -165,5 +175,14 @@ public sealed class ReportParameter
     internal void SetVisibility(bool isVisible)
     {
         IsVisible = isVisible;
+    }
+
+    /// <summary>
+    /// Sets or clears the JSON validation rule for this parameter.
+    /// </summary>
+    /// <param name="validationRuleJson">JSON rule string, or <see langword="null"/> to clear.</param>
+    internal void SetValidationRule(string? validationRuleJson)
+    {
+        ValidationRuleJson = validationRuleJson;
     }
 }

@@ -14,6 +14,8 @@ public sealed class TemplatesDbContext : DbContext, ITemplatesDbContext
     }
 
     public DbSet<ReportTemplate> ReportTemplates => Set<ReportTemplate>();
+    public DbSet<TemplateAsset> TemplateAssets => Set<TemplateAsset>();
+    public DbSet<TemplateVersion> TemplateVersions => Set<TemplateVersion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

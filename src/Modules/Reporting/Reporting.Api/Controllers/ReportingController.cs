@@ -266,7 +266,7 @@ public sealed class ReportingController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(
-            new RenderReportPdfQuery(id, request.ParametersJson),
+            new RenderReportPdfQuery(id, request.ParametersJsonString),
             cancellationToken);
 
         if (!result.IsSuccess)

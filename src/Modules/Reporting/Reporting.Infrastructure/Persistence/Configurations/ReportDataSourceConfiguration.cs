@@ -36,5 +36,21 @@ internal sealed class ReportDataSourceConfiguration : IEntityTypeConfiguration<R
 
         builder.HasIndex(x => new { x.ReportDefinitionId, x.Name })
             .IsUnique();
+
+        builder.Property(x => x.SortOrder)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(x => x.TimeoutSeconds)
+            .IsRequired(false);
+
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.HasMany(x => x.Parameters)
+            .WithOne()
+            .HasForeignKey(p => p.ReportDataSourceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

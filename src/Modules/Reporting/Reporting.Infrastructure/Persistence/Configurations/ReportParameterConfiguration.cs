@@ -40,6 +40,9 @@ internal sealed class ReportParameterConfiguration : IEntityTypeConfiguration<Re
         builder.Property(x => x.DefaultValue)
             .HasMaxLength(500);
 
+        builder.Property(x => x.ValidationRuleJson)
+            .HasColumnType("jsonb");
+
         builder.Property(x => x.IsVisible)
             .IsRequired()
             .HasDefaultValue(true);

@@ -19,12 +19,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Templates.Application\Templates.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Abstractions\ReportEngine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Contracts\ReportEngine.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.Infrastructure\ReportEngine.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\ReportEngine.SharedKernel\ReportEngine.SharedKernel.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,7 @@ namespace Reporting.Infrastructure.Services;
 
 internal sealed class NotImplementedReportQueryExecutor : IReportQueryExecutor
 {
-    public Task<string> ExecuteAsync(
+    public Task<DataSourceExecutionResult> ExecuteAsync(
         Guid reportDefinitionId,
         string parametersJson,
         CancellationToken cancellationToken = default)

@@ -1,3 +1,4 @@
+
 using ReportEngine.SharedKernel;
 
 using Microsoft.EntityFrameworkCore;
@@ -30,15 +31,22 @@ public static class DependencyInjection
                 configuration.GetConnectionString("ReportingDb"),
                 npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", "reporting")));
 
+        services.AddDbContextFactory<ReportingDbContext>(options =>
+            options.UseNpgsql(
+                configuration.GetConnectionString("ReportingDb"),
+                npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", "reporting")),
+            ServiceLifetime.Scoped);
+
         services.AddScoped<IReportingDbContext>(sp =>
             sp.GetRequiredService<ReportingDbContext>());
 
         services.AddScoped<ICurrentUserService, HttpContextCurrentUserService>();
 
-        services.AddScoped<IReportQueryExecutor, NotImplementedReportQueryExecutor>();
+        services.AddScoped<IReportQueryExecutor, PostgreSqlReportQueryExecutor>();
         services.AddScoped<IReportRenderer, HtmlReportRenderer>();
         services.AddScoped<IReportOutputStorage, NotImplementedReportStorageService>();
         services.AddSingleton<IHtmlToPdfRenderer, PlaywrightHtmlToPdfRenderer>();
+        services.AddScoped<ITemplateBindingEngine, ScribanTemplateBindingEngine>();
         services.Configure<HtmlRendererOptions>(
             configuration.GetSection(HtmlRendererOptions.SectionName));
 

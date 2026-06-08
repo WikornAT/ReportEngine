@@ -23,4 +23,18 @@ internal static class TemplateMappingExtensions
             CreatedBy: t.CreatedBy,
             ModifiedAt: t.ModifiedAt,
             ModifiedBy: t.ModifiedBy);
+
+    public static TemplateAssetDto ToDto(this TemplateAsset a) =>
+        new(
+            Id: a.Id,
+            TemplateId: a.TemplateId,
+            AssetType: a.AssetType,
+            FileName: a.FileName,
+            ContentType: a.ContentType,
+            RelativePath: a.RelativePath,
+            PublicUrl: a.PublicUrl,
+            SizeBytes: a.SizeBytes,
+            Sha256Hash: a.Sha256Hash,
+            CreatedAt: a.CreatedAt);
 }
+

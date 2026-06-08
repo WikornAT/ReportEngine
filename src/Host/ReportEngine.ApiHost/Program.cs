@@ -1,8 +1,10 @@
 using Designer.Api;
 using Labeling.Application;
 using Labeling.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Reporting.Api;
 using Templates.Api;
+using Templates.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +51,15 @@ app.UseHttpsRedirection();
 // /fonts/  → wwwroot/fonts   (Thai fonts: THSarabun.ttf, etc.)
 // /uploads/ → wwwroot/uploads (user-uploaded background images, logos, etc.)
 app.UseStaticFiles();
+
+// ── Auto-migrate on startup (development convenience) ─────────────────────────
+if (app.Environment.IsDevelopment())
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    await scope.ServiceProvider
+        .GetRequiredService<TemplatesDbContext>()
+        .Database.MigrateAsync();
+}
 
 app.UseAuthorization();
 

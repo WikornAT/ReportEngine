@@ -38,7 +38,18 @@ public interface IReportRenderer
 /// <param name="FileName">Suggested file name including extension.</param>
 /// <param name="ContentType">MIME type of the rendered output.</param>
 /// <param name="Content">Raw binary content of the rendered file.</param>
+/// <param name="PhaseTimings">Per-phase timing breakdown; may be null when not instrumented.</param>
 public sealed record RenderedReport(
     string FileName,
     string ContentType,
-    byte[] Content);
+    byte[] Content,
+    RenderPhaseTimings? PhaseTimings = null);
+
+/// <summary>Per-phase timing breakdown for a single render operation.</summary>
+/// <param name="DataSourceExecutionMs">Time spent executing data source queries.</param>
+/// <param name="TemplateBindingMs">Time spent in the Scriban binding engine.</param>
+/// <param name="RenderMs">Time spent in the PDF renderer (Playwright). Zero for HTML previews.</param>
+public sealed record RenderPhaseTimings(
+    long DataSourceExecutionMs,
+    long TemplateBindingMs,
+    long RenderMs);

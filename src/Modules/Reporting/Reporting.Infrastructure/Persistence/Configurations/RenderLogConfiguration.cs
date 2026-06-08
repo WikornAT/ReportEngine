@@ -39,6 +39,13 @@ internal sealed class RenderLogConfiguration : IEntityTypeConfiguration<RenderLo
             .IsRequired()
             .HasMaxLength(256);
 
+        builder.Property(x => x.ParametersJson)
+            .HasColumnType("jsonb");
+
+        builder.Property(x => x.DataSourceExecutionMs);
+        builder.Property(x => x.TemplateBindingMs);
+        builder.Property(x => x.RenderMs);
+
         builder.HasIndex(x => x.ReportDefinitionId);
         builder.HasIndex(x => x.StartedAt);
     }
