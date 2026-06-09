@@ -22,5 +22,5 @@ public sealed record UpdateReportDataSourceCommand(
     string Name,
     ReportDataSourceType DataSourceType,
     string ConnectionStringName,
-    string QueryText,
+    string? QueryText,
     int SortOrder) : IRequest<Result<ReportDataSourceDto>>;

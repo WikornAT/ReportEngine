@@ -132,8 +132,12 @@ public sealed class ReportDataSource
     {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
-        Guard.NotNullOrWhiteSpace(queryText, nameof(queryText));
         Guard.DefinedEnum(dataSourceType, nameof(dataSourceType));
+
+        if (RequiresQueryText(dataSourceType))
+        {
+            Guard.NotNullOrWhiteSpace(queryText, nameof(queryText));
+        }
 
         if (name.Length > 100)
         {
@@ -163,7 +167,10 @@ public sealed class ReportDataSource
     /// <param name="queryText">New query text (non-empty).</param>
     internal void UpdateQueryText(string queryText)
     {
-        Guard.NotNullOrWhiteSpace(queryText, nameof(queryText));
+        if (RequiresQueryText(DataSourceType))
+        {
+            Guard.NotNullOrWhiteSpace(queryText, nameof(queryText));
+        }
         QueryText = queryText;
     }
 
@@ -199,8 +206,12 @@ public sealed class ReportDataSource
     {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
-        Guard.NotNullOrWhiteSpace(queryText, nameof(queryText));
         Guard.DefinedEnum(dataSourceType, nameof(dataSourceType));
+
+        if (RequiresQueryText(dataSourceType))
+        {
+            Guard.NotNullOrWhiteSpace(queryText, nameof(queryText));
+        }
 
         if (name.Length > 100)
         {
@@ -241,4 +252,14 @@ public sealed class ReportDataSource
             _parameters.RemoveAt(index);
         }
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> for data source types that require a non-empty
+    /// <c>queryText</c> (SQL and stored procedures).
+    /// Non-database types such as <see cref="ReportDataSourceType.Json"/>,
+    /// <see cref="ReportDataSourceType.InMemory"/>, and
+    /// <see cref="ReportDataSourceType.WebService"/> supply data through other means.
+    /// </summary>
+    private static bool RequiresQueryText(ReportDataSourceType type) =>
+        type is ReportDataSourceType.SqlQuery or ReportDataSourceType.StoredProcedure;
 }

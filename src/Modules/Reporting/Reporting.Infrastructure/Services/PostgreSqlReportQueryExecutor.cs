@@ -136,11 +136,21 @@ internal sealed class PostgreSqlReportQueryExecutor : IReportQueryExecutor
         Dictionary<string, JsonElement> callerParams,
         CancellationToken cancellationToken)
     {
+        // Non-database sources (Json, InMemory, WebService) have no query to run.
+        // Parameters are passed directly by the caller via parametersJson.
+        if (source.DataSourceType is
+            ReportDataSourceType.Json or
+            ReportDataSourceType.InMemory or
+            ReportDataSourceType.WebService)
+        {
+            return [];
+        }
+
         string? connectionString = _configuration.GetConnectionString(source.ConnectionStringName);
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                $"Connection string '{source.ConnectionStringName}' not found in configuration.");
+                $"Data source '{source.Name}' failed: Connection string '{source.ConnectionStringName}' not found in configuration.");
         }
 
         await using var connection = new NpgsqlConnection(connectionString);
@@ -184,6 +194,15 @@ internal sealed class PostgreSqlReportQueryExecutor : IReportQueryExecutor
             {
                 CommandType = CommandType.Text,
             };
+        }
+        else if (source.DataSourceType == ReportDataSourceType.Json
+              || source.DataSourceType == ReportDataSourceType.InMemory
+              || source.DataSourceType == ReportDataSourceType.WebService)
+        {
+            // Should not be reached; ExecuteSourceAsync short-circuits before calling BuildCommand.
+            throw new InvalidOperationException(
+                $"Data source '{source.Name}': DataSourceType '{source.DataSourceType}' " +
+                "should not reach BuildCommand.");
         }
         else
         {

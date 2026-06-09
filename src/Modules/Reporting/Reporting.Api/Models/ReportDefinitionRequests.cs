@@ -21,7 +21,7 @@ public sealed record AddReportDataSourceRequest(
     string Name,
     ReportDataSourceType DataSourceType,
     string ConnectionStringName,
-    string QueryText,
+    string? QueryText,
     int SortOrder);
 
 /// <summary>Request body for PUT /api/reporting/report-definitions/{id}/data-sources/{dataSourceId}</summary>
@@ -29,7 +29,7 @@ public sealed record UpdateReportDataSourceRequest(
     string Name,
     ReportDataSourceType DataSourceType,
     string ConnectionStringName,
-    string QueryText,
+    string? QueryText,
     int SortOrder);
 
 /// <summary>Request body for POST /api/reporting/report-definitions/{id}/parameters</summary>

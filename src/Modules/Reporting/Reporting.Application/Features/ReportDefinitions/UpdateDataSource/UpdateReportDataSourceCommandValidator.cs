@@ -1,5 +1,7 @@
 using FluentValidation;
 
+using Reporting.Domain.Enums;
+
 namespace Reporting.Application.Features.ReportDefinitions.UpdateDataSource;
 
 /// <summary>Validates <see cref="UpdateReportDataSourceCommand"/> inputs.</summary>
@@ -24,8 +26,12 @@ public sealed class UpdateReportDataSourceCommandValidator : AbstractValidator<U
             .NotEmpty().WithMessage("Connection string name is required.")
             .MaximumLength(200).WithMessage("Connection string name must not exceed 200 characters.");
 
+        // QueryText is required only for SQL-based sources; Json/WebService/InMemory do not use it.
         RuleFor(x => x.QueryText)
-            .NotEmpty().WithMessage("Query text is required.");
+            .NotEmpty().WithMessage("Query text is required.")
+            .When(x => x.DataSourceType is
+                ReportDataSourceType.SqlQuery or
+                ReportDataSourceType.StoredProcedure);
 
         RuleFor(x => x.SortOrder)
             .GreaterThan(0).WithMessage("Sort order must be greater than 0.");
