@@ -63,7 +63,9 @@ internal sealed class UpdateReportDataSourceCommandHandler
                 dataSourceId: request.DataSourceId,
                 name: request.Name,
                 dataSourceType: request.DataSourceType,
-                connectionStringName: request.ConnectionStringName ?? string.Empty,
+                connectionStringName: ReportDataSource.RequiresConnectionString(request.DataSourceType)
+                    ? request.ConnectionStringName ?? string.Empty
+                    : string.Empty,
                 queryText: request.QueryText ?? string.Empty,
                 sortOrder: request.SortOrder,
                 modifiedBy: _currentUser.UserId);
