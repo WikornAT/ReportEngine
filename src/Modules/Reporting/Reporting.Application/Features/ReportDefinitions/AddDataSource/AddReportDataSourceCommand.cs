@@ -19,6 +19,6 @@ public sealed record AddReportDataSourceCommand(
     Guid ReportDefinitionId,
     string Name,
     ReportDataSourceType DataSourceType,
-    string ConnectionStringName,
+    string? ConnectionStringName,
     string? QueryText,
     int SortOrder) : IRequest<Result<ReportDefinitionDto>>;

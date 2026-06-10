@@ -15,6 +15,9 @@ using Reporting.Application.Features.ReportDefinitions.GetDataSourceById;
 using Reporting.Application.Features.ReportDefinitions.GetDataSources;
 using Reporting.Application.Features.ReportDefinitions.GetList;
 using Reporting.Application.Features.ReportDefinitions.RemoveDataSource;
+using Reporting.Application.Features.ReportDefinitions.AddDataSourceParameter;
+using Reporting.Application.Features.ReportDefinitions.UpdateDataSourceParameter;
+using Reporting.Application.Features.ReportDefinitions.RemoveDataSourceParameter;
 using Reporting.Application.Features.ReportDefinitions.Update;
 using Reporting.Application.Features.ReportDefinitions.UpdateDataSource;
 using Reporting.Application.Features.ReportDefinitions.RenderPdf;
@@ -204,6 +207,67 @@ public sealed class ReportingController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new RemoveReportDataSourceCommand(id, dataSourceId), cancellationToken);
+        return result.IsSuccess ? NoContent() : Problem(result);
+    }
+
+    /// <summary>Adds a parameter mapping to a data source (maps SQL/SP param name to report parameter).</summary>
+    [HttpPost("report-definitions/{id:guid}/data-sources/{dataSourceId:guid}/parameters")]
+    public async Task<IActionResult> AddDataSourceParameter(
+        Guid id,
+        Guid dataSourceId,
+        [FromBody] AddDataSourceParameterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new AddDataSourceParameterCommand(
+                id,
+                dataSourceId,
+                request.SourceParameterName,
+                request.ReportParameterName,
+                request.DbType,
+                request.IsRequired,
+                request.DefaultValue),
+            cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : Problem(result);
+    }
+
+    /// <summary>Updates an existing parameter mapping on a data source.</summary>
+    [HttpPut("report-definitions/{id:guid}/data-sources/{dataSourceId:guid}/parameters/{parameterId:guid}")]
+    public async Task<IActionResult> UpdateDataSourceParameter(
+        Guid id,
+        Guid dataSourceId,
+        Guid parameterId,
+        [FromBody] UpdateDataSourceParameterRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new UpdateDataSourceParameterCommand(
+                id,
+                dataSourceId,
+                parameterId,
+                request.SourceParameterName,
+                request.ReportParameterName,
+                request.DbType,
+                request.IsRequired,
+                request.DefaultValue),
+            cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : Problem(result);
+    }
+
+    /// <summary>Removes a parameter mapping from a data source.</summary>
+    [HttpDelete("report-definitions/{id:guid}/data-sources/{dataSourceId:guid}/parameters/{parameterId:guid}")]
+    public async Task<IActionResult> RemoveDataSourceParameter(
+        Guid id,
+        Guid dataSourceId,
+        Guid parameterId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new RemoveDataSourceParameterCommand(id, dataSourceId, parameterId),
+            cancellationToken);
+
         return result.IsSuccess ? NoContent() : Problem(result);
     }
 

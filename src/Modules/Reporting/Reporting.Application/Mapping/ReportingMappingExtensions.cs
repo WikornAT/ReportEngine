@@ -28,6 +28,17 @@ public static class ReportingMappingExtensions
 
     // ── ReportDataSource ──────────────────────────────────────────────────────
 
+    /// <summary>Maps a <see cref="ReportDataSourceParameter"/> entity to <see cref="ReportDataSourceParameterDto"/>.</summary>
+    public static ReportDataSourceParameterDto ToDto(this ReportDataSourceParameter param) =>
+        new(
+            Id: param.Id,
+            ReportDataSourceId: param.ReportDataSourceId,
+            SourceParameterName: param.SourceParameterName,
+            ReportParameterName: param.ReportParameterName,
+            DbType: param.DbType,
+            IsRequired: param.IsRequired,
+            DefaultValue: param.DefaultValue);
+
     /// <summary>Maps a <see cref="ReportDataSource"/> entity to <see cref="ReportDataSourceDto"/>.</summary>
     public static ReportDataSourceDto ToDto(this ReportDataSource dataSource) =>
         new(
@@ -37,7 +48,8 @@ public static class ReportingMappingExtensions
             DataSourceType: dataSource.DataSourceType,
             ConnectionStringName: dataSource.ConnectionStringName,
             QueryText: dataSource.QueryText,
-            SortOrder: dataSource.SortOrder);
+            SortOrder: dataSource.SortOrder,
+            Parameters: dataSource.Parameters.Select(p => p.ToDto()).ToList());
 
     // ── ReportDefinition ──────────────────────────────────────────────────────
 

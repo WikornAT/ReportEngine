@@ -13,4 +13,5 @@ public sealed record ReportDataSourceDto(
     ReportDataSourceType DataSourceType,
     string ConnectionStringName,
     string QueryText,
-    int SortOrder);
+    int SortOrder,
+    IReadOnlyList<ReportDataSourceParameterDto> Parameters);

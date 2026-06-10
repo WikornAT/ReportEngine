@@ -540,6 +540,72 @@ public sealed class ReportDefinition : IAuditableEntity
         Touch(modifiedBy);
     }
 
+    // ── Data source parameter management ─────────────────────────────────────
+
+    /// <summary>
+    /// Adds a parameter mapping to the specified data source.
+    /// Maps a SQL/SP parameter name to a declared report parameter.
+    /// </summary>
+    public ReportDataSourceParameter AddDataSourceParameter(
+        Guid dataSourceId,
+        string sourceParameterName,
+        string reportParameterName,
+        string? dbType,
+        bool isRequired,
+        string? defaultValue,
+        string modifiedBy)
+    {
+        EnsureNotArchived();
+        Guard.NotNullOrWhiteSpace(modifiedBy, nameof(modifiedBy));
+
+        ReportDataSource dataSource = FindDataSourceOrThrow(dataSourceId);
+        dataSource.AddParameter(sourceParameterName, reportParameterName, dbType, isRequired, defaultValue);
+        Touch(modifiedBy);
+
+        return dataSource.Parameters[^1];
+    }
+
+    /// <summary>
+    /// Updates an existing parameter mapping on the specified data source.
+    /// </summary>
+    public void UpdateDataSourceParameter(
+        Guid dataSourceId,
+        Guid parameterId,
+        string sourceParameterName,
+        string reportParameterName,
+        string? dbType,
+        bool isRequired,
+        string? defaultValue,
+        string modifiedBy)
+    {
+        EnsureNotArchived();
+        Guard.NotNullOrWhiteSpace(modifiedBy, nameof(modifiedBy));
+
+        ReportDataSource dataSource = FindDataSourceOrThrow(dataSourceId);
+        dataSource.UpdateParameter(parameterId, sourceParameterName, reportParameterName, dbType, isRequired, defaultValue);
+        Touch(modifiedBy);
+    }
+
+    /// <summary>
+    /// Removes a parameter mapping from the specified data source.
+    /// </summary>
+    public void RemoveDataSourceParameter(Guid dataSourceId, Guid parameterId, string modifiedBy)
+    {
+        EnsureNotArchived();
+        Guard.NotNullOrWhiteSpace(modifiedBy, nameof(modifiedBy));
+
+        ReportDataSource dataSource = FindDataSourceOrThrow(dataSourceId);
+
+        if (!dataSource.Parameters.Any(p => p.Id == parameterId))
+        {
+            throw new ReportingDomainException(
+                $"Parameter mapping '{parameterId}' not found on data source '{dataSource.Name}'.");
+        }
+
+        dataSource.RemoveParameter(parameterId);
+        Touch(modifiedBy);
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private void EnsureNotArchived()

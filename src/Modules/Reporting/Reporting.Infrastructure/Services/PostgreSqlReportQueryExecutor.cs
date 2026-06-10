@@ -136,12 +136,14 @@ internal sealed class PostgreSqlReportQueryExecutor : IReportQueryExecutor
         Dictionary<string, JsonElement> callerParams,
         CancellationToken cancellationToken)
     {
-        // Non-database sources (Json, InMemory, WebService) have no query to run.
-        // Parameters are passed directly by the caller via parametersJson.
-        if (source.DataSourceType is
-            ReportDataSourceType.Json or
-            ReportDataSourceType.InMemory or
-            ReportDataSourceType.WebService)
+        // Json sources extract rows from the caller's parametersJson payload.
+        if (source.DataSourceType == ReportDataSourceType.Json)
+        {
+            return await ExecuteJsonSourceAsync(source, callerParams);
+        }
+
+        // Other non-database sources (InMemory, WebService) pass data directly via parametersJson.
+        if (source.DataSourceType is ReportDataSourceType.InMemory or ReportDataSourceType.WebService)
         {
             return [];
         }
@@ -201,8 +203,8 @@ internal sealed class PostgreSqlReportQueryExecutor : IReportQueryExecutor
         {
             // Should not be reached; ExecuteSourceAsync short-circuits before calling BuildCommand.
             throw new InvalidOperationException(
-                $"Data source '{source.Name}': DataSourceType '{source.DataSourceType}' " +
-                "should not reach BuildCommand.");
+                $"Data source '{source.Name}': DataSourceType '{source.DataSourceType}' "
+                + "should not reach BuildCommand.");
         }
         else
         {
@@ -282,6 +284,110 @@ internal sealed class PostgreSqlReportQueryExecutor : IReportQueryExecutor
         }
 
         return rows;
+    }
+
+    // ── Private: JSON source execution ───────────────────────────────────────
+
+    /// <summary>
+    /// Resolves rows for a <see cref="ReportDataSourceType.Json"/> data source.
+    /// <para>
+    /// <b>QueryText semantics</b>:
+    /// <list type="bullet">
+    ///   <item>Empty / <see langword="null"/> — treat caller's root parameter object as a single row.</item>
+    ///   <item><c>$</c> — same as empty; returns the root object as one row.</item>
+    ///   <item><c>$.propName</c> or <c>propName</c> — extract the named property;
+    ///         arrays become one row per element, objects become a single row.</item>
+    ///   <item>Inline JSON literal (starts with <c>[</c> or <c>{</c>) — parsed and returned directly.</item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    private static Task<List<Dictionary<string, object?>>> ExecuteJsonSourceAsync(
+        ReportDataSource source,
+        Dictionary<string, JsonElement> callerParams)
+    {
+        string selector = source.QueryText?.Trim() ?? string.Empty;
+
+        // ── Inline JSON literal ───────────────────────────────────────────────
+        if (selector.StartsWith('[') || selector.StartsWith('{'))
+        {
+            try
+            {
+                using JsonDocument doc = JsonDocument.Parse(selector);
+                return Task.FromResult(JsonElementToRows(doc.RootElement.Clone()));
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Data source '{source.Name}': QueryText is not valid JSON. {ex.Message}", ex);
+            }
+        }
+
+        // ── Path selector ─────────────────────────────────────────────────────
+        // Normalise: strip leading "$." or "$"
+        string propName = selector switch
+        {
+            "" or "$" => string.Empty,
+            _ when selector.StartsWith("$.", StringComparison.Ordinal) => selector[2..],
+            _ when selector.StartsWith('$') => selector[1..],
+            _ => selector,
+        };
+
+        if (string.IsNullOrEmpty(propName))
+        {
+            // Root: treat entire callerParams as one row
+            var row = callerParams.ToDictionary(
+                kv => kv.Key,
+                kv => JsonElementToClr(kv.Value),
+                StringComparer.OrdinalIgnoreCase);
+            return Task.FromResult(new List<Dictionary<string, object?>> { row });
+        }
+
+        if (!callerParams.TryGetValue(propName, out JsonElement element))
+        {
+            // Property not found — return empty set rather than erroring
+            return Task.FromResult(new List<Dictionary<string, object?>>());
+        }
+
+        return Task.FromResult(JsonElementToRows(element));
+    }
+
+    /// <summary>
+    /// Converts a <see cref="JsonElement"/> into a list of string→object rows.
+    /// Arrays produce one row per element; objects produce a single row;
+    /// scalars produce a single row with key <c>value</c>.
+    /// </summary>
+    private static List<Dictionary<string, object?>> JsonElementToRows(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            var rows = new List<Dictionary<string, object?>>(element.GetArrayLength());
+            foreach (JsonElement item in element.EnumerateArray())
+            {
+                rows.Add(JsonElementToSingleRow(item));
+            }
+            return rows;
+        }
+
+        return [JsonElementToSingleRow(element)];
+    }
+
+    private static Dictionary<string, object?> JsonElementToSingleRow(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (JsonProperty prop in element.EnumerateObject())
+            {
+                row[prop.Name] = JsonElementToClr(prop.Value);
+            }
+            return row;
+        }
+
+        // Scalar / array nested inside — expose as { "value": <clr> }
+        return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["value"] = JsonElementToClr(element),
+        };
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

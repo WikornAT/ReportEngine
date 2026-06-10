@@ -20,7 +20,7 @@ public sealed record UpdateReportDefinitionRequest(
 public sealed record AddReportDataSourceRequest(
     string Name,
     ReportDataSourceType DataSourceType,
-    string ConnectionStringName,
+    string? ConnectionStringName,
     string? QueryText,
     int SortOrder);
 
@@ -28,7 +28,7 @@ public sealed record AddReportDataSourceRequest(
 public sealed record UpdateReportDataSourceRequest(
     string Name,
     ReportDataSourceType DataSourceType,
-    string ConnectionStringName,
+    string? ConnectionStringName,
     string? QueryText,
     int SortOrder);
 
@@ -46,6 +46,22 @@ public sealed record AddReportParameterRequest(
 /// <summary>Request body for POST /api/reporting/report-definitions/{id}/assign-template</summary>
 public sealed record AssignTemplateRequest(
     Guid TemplateId);
+
+/// <summary>Request body for POST /api/reporting/report-definitions/{id}/data-sources/{dsId}/parameters</summary>
+public sealed record AddDataSourceParameterRequest(
+    string SourceParameterName,
+    string ReportParameterName,
+    string? DbType,
+    bool IsRequired,
+    string? DefaultValue);
+
+/// <summary>Request body for PUT /api/reporting/report-definitions/{id}/data-sources/{dsId}/parameters/{parameterId}</summary>
+public sealed record UpdateDataSourceParameterRequest(
+    string SourceParameterName,
+    string ReportParameterName,
+    string? DbType,
+    bool IsRequired,
+    string? DefaultValue);
 
 /// <summary>
 /// Request body for POST /api/v1/reports/{reportId}/preview-html

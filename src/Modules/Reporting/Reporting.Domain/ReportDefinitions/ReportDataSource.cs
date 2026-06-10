@@ -131,8 +131,12 @@ public sealed class ReportDataSource
         bool isActive = true)
     {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
-        Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
         Guard.DefinedEnum(dataSourceType, nameof(dataSourceType));
+
+        if (RequiresConnectionString(dataSourceType))
+        {
+            Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
+        }
 
         if (RequiresQueryText(dataSourceType))
         {
@@ -181,7 +185,10 @@ public sealed class ReportDataSource
     /// <param name="connectionStringName">New named connection string reference (non-empty).</param>
     internal void UpdateConnectionStringName(string connectionStringName)
     {
-        Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
+        if (RequiresConnectionString(DataSourceType))
+        {
+            Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
+        }
         ConnectionStringName = connectionStringName;
     }
 
@@ -205,8 +212,12 @@ public sealed class ReportDataSource
         bool isActive = true)
     {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
-        Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
         Guard.DefinedEnum(dataSourceType, nameof(dataSourceType));
+
+        if (RequiresConnectionString(dataSourceType))
+        {
+            Guard.NotNullOrWhiteSpace(connectionStringName, nameof(connectionStringName));
+        }
 
         if (RequiresQueryText(dataSourceType))
         {
@@ -254,6 +265,28 @@ public sealed class ReportDataSource
     }
 
     /// <summary>
+    /// Updates the parameter mapping with the specified <paramref name="parameterId"/>.
+    /// Throws <see cref="ReportingDomainException"/> if the mapping is not found.
+    /// </summary>
+    internal void UpdateParameter(
+        Guid parameterId,
+        string sourceParameterName,
+        string reportParameterName,
+        string? dbType,
+        bool isRequired,
+        string? defaultValue)
+    {
+        ReportDataSourceParameter? param = _parameters.Find(p => p.Id == parameterId);
+        if (param is null)
+        {
+            throw new ReportingDomainException(
+                $"Parameter mapping '{parameterId}' not found on data source '{Name}'.");
+        }
+
+        param.Update(sourceParameterName, reportParameterName, dbType, isRequired, defaultValue);
+    }
+
+    /// <summary>
     /// Returns <see langword="true"/> for data source types that require a non-empty
     /// <c>queryText</c> (SQL and stored procedures).
     /// Non-database types such as <see cref="ReportDataSourceType.Json"/>,
@@ -261,5 +294,13 @@ public sealed class ReportDataSource
     /// <see cref="ReportDataSourceType.WebService"/> supply data through other means.
     /// </summary>
     private static bool RequiresQueryText(ReportDataSourceType type) =>
+        type is ReportDataSourceType.SqlQuery or ReportDataSourceType.StoredProcedure;
+
+    /// <summary>
+    /// Returns <see langword="true"/> for data source types that require a database
+    /// connection string. Non-database types (Json, InMemory, WebService, etc.) source
+    /// their data without a connection string.
+    /// </summary>
+    public static bool RequiresConnectionString(ReportDataSourceType type) =>
         type is ReportDataSourceType.SqlQuery or ReportDataSourceType.StoredProcedure;
 }
