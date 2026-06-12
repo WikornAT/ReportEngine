@@ -14,7 +14,8 @@ namespace Reporting.Infrastructure.Services;
 /// against the host application.
 /// </para>
 /// <para>
-/// <b>PrintBackground</b> is always respected from <see cref="HtmlPdfRenderOptions.PrintBackground"/>.
+/// <b>PrintBackground</b> is always respect
+/// ed from <see cref="HtmlPdfRenderOptions.PrintBackground"/>.
 /// Set it to <see langword="true"/> for styled HTML templates with background images and colours.
 /// </para>
 /// <para>
