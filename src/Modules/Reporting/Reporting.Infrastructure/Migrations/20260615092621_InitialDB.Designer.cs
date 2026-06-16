@@ -12,7 +12,7 @@ using Reporting.Infrastructure.Persistence;
 namespace Reporting.Infrastructure.Migrations
 {
     [DbContext(typeof(ReportingDbContext))]
-    [Migration("20260529090220_InitialDB")]
+    [Migration("20260615092621_InitialDB")]
     partial class InitialDB
     {
         /// <inheritdoc />
@@ -21,7 +21,7 @@ namespace Reporting.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("reporting")
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -33,6 +33,9 @@ namespace Reporting.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("DataSourceExecutionMs")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("DurationMs")
                         .HasColumnType("bigint");
@@ -49,6 +52,12 @@ namespace Reporting.Infrastructure.Migrations
                     b.Property<int?>("OutputSizeBytes")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ParametersJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<long?>("RenderMs")
+                        .HasColumnType("bigint");
+
                     b.Property<Guid>("ReportDefinitionId")
                         .HasColumnType("uuid");
 
@@ -59,6 +68,9 @@ namespace Reporting.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("TemplateBindingMs")
+                        .HasColumnType("bigint");
 
                     b.Property<Guid?>("TemplateId")
                         .HasColumnType("uuid");
@@ -92,6 +104,11 @@ namespace Reporting.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -105,6 +122,11 @@ namespace Reporting.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int?>("TimeoutSeconds")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -113,6 +135,45 @@ namespace Reporting.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("report_data_sources", "reporting");
+                });
+
+            modelBuilder.Entity("Reporting.Domain.ReportDefinitions.ReportDataSourceParameter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DbType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DefaultValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("ReportDataSourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReportParameterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SourceParameterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportDataSourceId", "SourceParameterName")
+                        .IsUnique();
+
+                    b.ToTable("report_data_source_parameters", "reporting");
                 });
 
             modelBuilder.Entity("Reporting.Domain.ReportDefinitions.ReportDefinition", b =>
@@ -226,6 +287,9 @@ namespace Reporting.Infrastructure.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ValidationRuleJson")
+                        .HasColumnType("jsonb");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ReportDefinitionId", "Name")
@@ -238,6 +302,12 @@ namespace Reporting.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BatchExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("BatchItemIndex")
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -266,9 +336,20 @@ namespace Reporting.Infrastructure.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("OutputFileName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("ParametersJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("ParentExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RenderMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("ReportDefinitionId")
                         .HasColumnType("uuid");
@@ -300,6 +381,8 @@ namespace Reporting.Infrastructure.Migrations
                         .HasColumnName("requested_formats");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BatchExecutionId");
 
                     b.HasIndex("CreatedAt");
 
@@ -362,6 +445,15 @@ namespace Reporting.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Reporting.Domain.ReportDefinitions.ReportDataSourceParameter", b =>
+                {
+                    b.HasOne("Reporting.Domain.ReportDefinitions.ReportDataSource", null)
+                        .WithMany("Parameters")
+                        .HasForeignKey("ReportDataSourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Reporting.Domain.ReportDefinitions.ReportParameter", b =>
                 {
                     b.HasOne("Reporting.Domain.ReportDefinitions.ReportDefinition", null)
@@ -378,6 +470,11 @@ namespace Reporting.Infrastructure.Migrations
                         .HasForeignKey("ReportExecutionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Reporting.Domain.ReportDefinitions.ReportDataSource", b =>
+                {
+                    b.Navigation("Parameters");
                 });
 
             modelBuilder.Entity("Reporting.Domain.ReportDefinitions.ReportDefinition", b =>

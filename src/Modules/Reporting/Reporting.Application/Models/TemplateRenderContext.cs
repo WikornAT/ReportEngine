@@ -45,7 +45,13 @@ public sealed record ReportMeta(
 /// <param name="Now">Current UTC date-time at render time.</param>
 /// <param name="Today">Current UTC date (no time component).</param>
 /// <param name="User">Identity that triggered the render.</param>
+/// <param name="BatchIndex">Zero-based index of this item within the batch. <see langword="null"/> for non-batch renders.</param>
+/// <param name="BatchTotal">Total number of items in the batch. <see langword="null"/> for non-batch renders.</param>
+/// <param name="BatchExecutionId">Shared execution identifier for all items in the batch. <see langword="null"/> for non-batch renders.</param>
 public sealed record SystemContext(
     DateTimeOffset Now,
     DateOnly Today,
-    string User);
+    string User,
+    int? BatchIndex = null,
+    int? BatchTotal = null,
+    Guid? BatchExecutionId = null);

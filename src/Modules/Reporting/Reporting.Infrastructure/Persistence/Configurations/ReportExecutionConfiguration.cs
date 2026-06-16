@@ -59,14 +59,39 @@ internal sealed class ReportExecutionConfiguration : IEntityTypeConfiguration<Re
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .IsRequired();
 
+        // ── Batch tracking ────────────────────────────────────────────────────
+
+        builder.Property(x => x.BatchExecutionId)
+            .IsRequired(false);
+
+        builder.Property(x => x.ParentExecutionId)
+            .IsRequired(false);
+
+        builder.Property(x => x.BatchItemIndex)
+            .IsRequired(false);
+
+        builder.Property(x => x.RenderMode)
+            .IsRequired(false)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        builder.Property(x => x.OutputFileName)
+            .IsRequired(false)
+            .HasMaxLength(500);
+
+        // ── Relations ─────────────────────────────────────────────────────────
+
         builder.HasMany(x => x.OutputFiles)
             .WithOne()
             .HasForeignKey(f => f.ReportExecutionId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // ── Indexes ───────────────────────────────────────────────────────────
+
         builder.HasIndex(x => x.ReportDefinitionId);
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.TriggeredBy);
         builder.HasIndex(x => x.CreatedAt);
+        builder.HasIndex(x => x.BatchExecutionId);
     }
 }

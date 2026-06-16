@@ -61,6 +61,7 @@ internal sealed class ExecuteReportCommandHandler
     private readonly IReportQueryExecutor _queryExecutor;
     private readonly IReportRenderer _renderer;
     private readonly IReportOutputStorage _storage;
+    private readonly IDateTimeProvider _dateTime;
     private readonly ILogger<ExecuteReportCommandHandler> _logger;
 
     public ExecuteReportCommandHandler(
@@ -69,20 +70,24 @@ internal sealed class ExecuteReportCommandHandler
         IReportQueryExecutor queryExecutor,
         IReportRenderer renderer,
         IReportOutputStorage storage,
+        IDateTimeProvider dateTime,
         ILogger<ExecuteReportCommandHandler> logger)
     {
-        _dbContext = dbContext;
-        _currentUser = currentUser;
+        _dbContext     = dbContext;
+        _currentUser   = currentUser;
         _queryExecutor = queryExecutor;
-        _renderer = renderer;
-        _storage = storage;
-        _logger = logger;
+        _renderer      = renderer;
+        _storage       = storage;
+        _dateTime      = dateTime;
+        _logger        = logger;
     }
 
     public async Task<Result<ReportExecutionDto>> Handle(
         ExecuteReportCommand request,
         CancellationToken cancellationToken)
     {
+        DateTimeOffset now = _dateTime.UtcNow;
+
         // ── 1. Load report definition ─────────────────────────────────────────
         ReportDefinition? definition = await _dbContext.ReportDefinitions
             .AsNoTracking()
@@ -113,11 +118,12 @@ internal sealed class ExecuteReportCommandHandler
         // ── 4. Create execution in Queued state and persist ───────────────────
         ReportExecution execution = ReportExecution.Queue(
             reportDefinitionId: definition.Id,
-            reportName: definition.Name,
-            parametersJson: request.ParametersJson,
-            requestedFormats: request.RequestedFormats,
-            triggeredBy: _currentUser.UserId,
-            correlationId: request.CorrelationId);
+            reportName:         definition.Name,
+            parametersJson:     request.ParametersJson,
+            requestedFormats:   request.RequestedFormats,
+            triggeredBy:        _currentUser.UserId,
+            now:                now,
+            correlationId:      request.CorrelationId);
 
         _dbContext.ReportExecutions.Add(execution);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -125,7 +131,7 @@ internal sealed class ExecuteReportCommandHandler
         _logQueued(_logger, execution.Id, definition.Name, _currentUser.UserId, null);
 
         // ── 5. Transition to Running ──────────────────────────────────────────
-        execution.Start();
+        execution.Start(now);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         // ── 6. Execute queries and render ─────────────────────────────────────
@@ -151,15 +157,16 @@ internal sealed class ExecuteReportCommandHandler
                     cancellationToken: cancellationToken);
 
                 execution.AddOutputFile(
-                    outputFormat: format,
-                    fileName: rendered.FileName,
-                    storagePath: storagePath,
-                    contentType: rendered.ContentType,
-                    fileSizeBytes: rendered.Content.LongLength);
+                    outputFormat:  format,
+                    fileName:      rendered.FileName,
+                    storagePath:   storagePath,
+                    contentType:   rendered.ContentType,
+                    fileSizeBytes: rendered.Content.LongLength,
+                    now:           now);
             }
 
             // ── 7. Mark Completed ─────────────────────────────────────────────
-            execution.Complete();
+            execution.Complete(now);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             _logCompleted(_logger, execution.Id, execution.DurationMs ?? 0L, null);
@@ -173,7 +180,7 @@ internal sealed class ExecuteReportCommandHandler
 
             try
             {
-                execution.Fail(ex.Message);
+                execution.Fail(ex.Message, now);
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
             catch (Exception persistEx)

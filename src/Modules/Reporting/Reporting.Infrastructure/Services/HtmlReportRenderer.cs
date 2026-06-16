@@ -207,8 +207,11 @@ internal sealed class HtmlReportRenderer : IReportRenderer
         string htmlWithCss,
         CancellationToken cancellationToken)
     {
-        ParseDataJson(dataJson, out Dictionary<string, object?> paramsDict, out Dictionary<string, object?> dataDict);
-        TemplateRenderContext renderContext = BuildRenderContext(definition, paramsDict, dataDict);
+        ParseDataJson(dataJson,
+            out Dictionary<string, object?> paramsDict,
+            out Dictionary<string, object?> dataDict,
+            out BatchSystemContext? batchContext);
+        TemplateRenderContext renderContext = BuildRenderContext(definition, paramsDict, dataDict, batchContext);
         return await _bindingEngine.BindAsync(htmlWithCss, renderContext, cancellationToken);
     }
 
@@ -254,17 +257,22 @@ internal sealed class HtmlReportRenderer : IReportRenderer
     }
 
     /// <summary>
-    /// Parses a flat <paramref name="dataJson"/> string into two dictionaries.
-    /// Keys prefixed with <c>_data_</c> go to <paramref name="dataDict"/> (prefix stripped);
-    /// all other keys go to <paramref name="paramsDict"/>.
+    /// Parses a flat <paramref name="dataJson"/> string into three outputs.
+    /// <list type="bullet">
+    ///   <item>Keys prefixed with <c>_data_</c> go to <paramref name="dataDict"/> (prefix stripped).</item>
+    ///   <item>Keys prefixed with <c>_sys_batch_</c> are decoded into <paramref name="batchContext"/>.</item>
+    ///   <item>All remaining keys go to <paramref name="paramsDict"/>.</item>
+    /// </list>
     /// </summary>
     private static void ParseDataJson(
         string dataJson,
         out Dictionary<string, object?> paramsDict,
-        out Dictionary<string, object?> dataDict)
+        out Dictionary<string, object?> dataDict,
+        out BatchSystemContext? batchContext)
     {
-        paramsDict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        dataDict   = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        paramsDict   = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        dataDict     = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        batchContext = null;
 
         if (string.IsNullOrWhiteSpace(dataJson) || dataJson.Trim() == "{}")
         {
@@ -273,18 +281,40 @@ internal sealed class HtmlReportRenderer : IReportRenderer
 
         using JsonDocument doc = JsonDocument.Parse(dataJson);
 
+        int? batchIndex = null;
+        int? batchTotal = null;
+        Guid? batchExecutionId = null;
+
         foreach (JsonProperty prop in doc.RootElement.EnumerateObject())
         {
-            object? value = JsonElementToValue(prop.Value);
-
             if (prop.Name.StartsWith("_data_", StringComparison.OrdinalIgnoreCase))
             {
-                dataDict[prop.Name[6..]] = value;
+                dataDict[prop.Name[6..]] = JsonElementToValue(prop.Value);
             }
-            else
+            else if (prop.Name.Equals("_sys_batch_index", StringComparison.OrdinalIgnoreCase)
+                && prop.Value.TryGetInt32(out int idx))
             {
-                paramsDict[prop.Name] = value;
+                batchIndex = idx;
             }
+            else if (prop.Name.Equals("_sys_batch_total", StringComparison.OrdinalIgnoreCase)
+                && prop.Value.TryGetInt32(out int total))
+            {
+                batchTotal = total;
+            }
+            else if (prop.Name.Equals("_sys_batch_execution_id", StringComparison.OrdinalIgnoreCase)
+                && prop.Value.TryGetGuid(out Guid execId))
+            {
+                batchExecutionId = execId;
+            }
+            else if (!prop.Name.StartsWith("_sys_batch_", StringComparison.OrdinalIgnoreCase))
+            {
+                paramsDict[prop.Name] = JsonElementToValue(prop.Value);
+            }
+        }
+
+        if (batchIndex.HasValue || batchTotal.HasValue || batchExecutionId.HasValue)
+        {
+            batchContext = new BatchSystemContext(batchIndex, batchTotal, batchExecutionId);
         }
     }
 
@@ -296,12 +326,16 @@ internal sealed class HtmlReportRenderer : IReportRenderer
     private static TemplateRenderContext BuildRenderContext(
         ReportDefinition definition,
         IReadOnlyDictionary<string, object?> paramsDict,
-        IReadOnlyDictionary<string, object?> dataDict)
+        IReadOnlyDictionary<string, object?> dataDict,
+        BatchSystemContext? batchContext = null)
     {
         var system = new SystemContext(
             Now: DateTimeOffset.UtcNow,
             Today: DateOnly.FromDateTime(DateTime.UtcNow),
-            User: "system");
+            User: "system",
+            BatchIndex: batchContext?.BatchIndex,
+            BatchTotal: batchContext?.BatchTotal,
+            BatchExecutionId: batchContext?.BatchExecutionId);
 
         return new TemplateRenderContext(
             Report: ReportMeta.From(definition),
@@ -309,6 +343,12 @@ internal sealed class HtmlReportRenderer : IReportRenderer
             Data: dataDict,
             System: system);
     }
+
+    /// <summary>Internal carrier for batch system context decoded from the dataJson.</summary>
+    private sealed record BatchSystemContext(
+        int? BatchIndex,
+        int? BatchTotal,
+        Guid? BatchExecutionId);
 
     private static string InjectCss(string htmlContent, string? cssContent)
     {

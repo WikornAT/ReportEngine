@@ -3,6 +3,8 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
+using Reporting.Application.Contracts;
+using Reporting.Application.Features.ReportDefinitions.RenderBatch;
 using Reporting.Api.Models;
 using Reporting.Application.Features.ReportDefinitions.Activate;
 using Reporting.Application.Features.ReportDefinitions.AddDataSource;
@@ -378,6 +380,44 @@ public sealed class ReportingController : ControllerBase
 
         return result.IsSuccess ? Ok(result.Value) : Problem(result);
     }
+
+    /// <summary>
+    /// Unified batch render endpoint.
+    /// Returns <c>application/pdf</c> for <c>Single</c> and <c>MergePdf</c>,
+    /// <c>application/zip</c> for <c>ZipPdf</c>, and <c>text/html</c> for <c>PreviewHtml</c>.
+    /// </summary>
+    [HttpPost("{reportId:guid}/render")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Render(
+        Guid reportId,
+        [FromBody] RenderBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        Result<BatchRenderResult> result = await _mediator.Send(
+            new RenderBatchReportCommand(
+                ReportDefinitionId: reportId,
+                RenderMode: request.RenderMode,
+                ParametersJsonItems: request.ParametersJsonStrings,
+                OutputFileNamePattern: request.OutputFileNamePattern,
+                ContinueOnError: request.ContinueOnError,
+                TriggeredBy: request.TriggeredBy ?? User.Identity?.Name ?? "anonymous"),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Problem(result);
+        }
+
+        BatchRenderResult batch = result.Value;
+
+        return batch.ContentType.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)
+            ? Content(System.Text.Encoding.UTF8.GetString(batch.Content), batch.ContentType)
+            : File(batch.Content, batch.ContentType, batch.FileName);
+    }
+
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

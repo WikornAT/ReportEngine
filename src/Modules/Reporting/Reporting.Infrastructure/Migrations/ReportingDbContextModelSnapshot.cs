@@ -18,7 +18,7 @@ namespace Reporting.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("reporting")
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -300,6 +300,12 @@ namespace Reporting.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BatchExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("BatchItemIndex")
+                        .HasColumnType("integer");
+
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -327,9 +333,20 @@ namespace Reporting.Infrastructure.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("OutputFileName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("ParametersJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("ParentExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RenderMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("ReportDefinitionId")
                         .HasColumnType("uuid");
@@ -361,6 +378,8 @@ namespace Reporting.Infrastructure.Migrations
                         .HasColumnName("requested_formats");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BatchExecutionId");
 
                     b.HasIndex("CreatedAt");
 
