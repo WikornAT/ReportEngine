@@ -41,6 +41,7 @@ public static class DependencyInjection
             sp.GetRequiredService<ReportingDbContext>());
 
         services.AddScoped<ICurrentUserService, HttpContextCurrentUserService>();
+        services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         services.AddScoped<IReportQueryExecutor, PostgreSqlReportQueryExecutor>();
         services.AddScoped<IReportRenderer, HtmlReportRenderer>();
@@ -51,6 +52,10 @@ public static class DependencyInjection
             configuration.GetSection(HtmlRendererOptions.SectionName));
 
         services.AddScoped<ITemplateVerifier, TemplateVerifier>();
+
+        services.AddScoped<IBatchReportOrchestrator, BatchReportOrchestrator>();
+        services.Configure<BatchRenderOptions>(
+            configuration.GetSection(BatchRenderOptions.SectionName));
 
         return services;
     }

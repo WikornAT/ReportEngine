@@ -6,12 +6,6 @@ namespace Reporting.Domain.ReportExecutions;
 /// <summary>
 /// Aggregate root representing a single run of a report.
 /// <para>
-/// A <see cref="ReportExecution"/> is the runtime counterpart of
-/// <see cref="ReportDefinitions.ReportDefinition"/>. It captures <em>when</em> a report was run,
-/// <em>who</em> ran it, <em>what parameters</em> were supplied, the execution outcome, and
-/// any output files that were produced.
-/// </para>
-/// <para>
 /// <b>State machine:</b>
 /// <code>
 /// Queued → Running → Completed
@@ -23,134 +17,85 @@ namespace Reporting.Domain.ReportExecutions;
 /// <see cref="ReportingDomainException"/>.
 /// </para>
 /// <para>
-/// <b>Aggregate boundary:</b>
-/// <list type="bullet">
-///   <item><see cref="ReportOutputFile"/> — owned child, appended via <see cref="AddOutputFile"/>
-///   after a successful render.</item>
-/// </list>
-/// </para>
-/// <para>
-/// <b>Extension points:</b> Add <c>ScheduledExecutionId</c> (Guid?) to link back to a
-/// Scheduling module trigger; add <c>PrintJobId</c> (Guid?) for Printing integration;
-/// add <c>NotificationsSent</c> (bool) for delivery tracking.
+/// <b>Clock discipline:</b> this aggregate is clock-free. Every method that records a timestamp
+/// requires the caller to supply <c>DateTimeOffset now</c> — obtained from
+/// <c>IDateTimeProvider.UtcNow</c> in the Application or Infrastructure layer.
 /// </para>
 /// </summary>
 public sealed class ReportExecution : IAuditableEntity
 {
     // ── Identity ──────────────────────────────────────────────────────────────
 
-    /// <summary>Surrogate primary key.</summary>
     public Guid Id { get; private set; }
 
     // ── Report reference ──────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Cross-aggregate reference to the <see cref="ReportDefinitions.ReportDefinition"/>
-    /// that was executed.  The application layer resolves the full definition via
-    /// <c>IReportDefinitionRepository</c> when needed.
-    /// </summary>
     public Guid ReportDefinitionId { get; private set; }
 
-    /// <summary>
-    /// Snapshot of the report name at execution time.
-    /// Preserved so that renaming or archiving the definition does not corrupt history.
-    /// </summary>
+    /// <summary>Snapshot of the report name at execution time.</summary>
     public string ReportName { get; private set; } = string.Empty;
 
     // ── Parameters ────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// JSON-serialized snapshot of the parameter values supplied by the caller.
-    /// The schema matches the parameter declarations on the associated
-    /// <see cref="ReportDefinitions.ReportDefinition"/> at execution time.
-    /// Stored as a raw JSON string to keep the domain free of serializer dependencies.
-    /// </summary>
+    /// <summary>JSON-serialized snapshot of the parameter values supplied by the caller.</summary>
     public string ParametersJson { get; private set; } = "{}";
 
     // ── Requested formats ─────────────────────────────────────────────────────
 
-    /// <summary>
-    /// One or more output formats requested by the caller.
-    /// The engine produces one <see cref="ReportOutputFile"/> per requested format.
-    /// </summary>
     public IReadOnlyList<ReportOutputFormat> RequestedFormats => _requestedFormats.AsReadOnly();
-
     private readonly List<ReportOutputFormat> _requestedFormats = [];
 
     // ── Status & timing ───────────────────────────────────────────────────────
 
-    /// <summary>Current lifecycle status of this execution run.</summary>
     public ReportExecutionStatus Status { get; private set; }
-
-    /// <summary>UTC timestamp when the execution transitioned to <see cref="ReportExecutionStatus.Running"/>.</summary>
     public DateTimeOffset? StartedAt { get; private set; }
-
-    /// <summary>
-    /// UTC timestamp when the execution reached a terminal state
-    /// (Completed, Failed, Cancelled, or TimedOut).
-    /// </summary>
     public DateTimeOffset? CompletedAt { get; private set; }
-
-    /// <summary>
-    /// Duration of the execution in milliseconds.
-    /// Populated when the execution reaches a terminal state.
-    /// </summary>
     public long? DurationMs { get; private set; }
 
     // ── Outcome ───────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Human-readable error message when <see cref="Status"/> is
-    /// <see cref="ReportExecutionStatus.Failed"/> or <see cref="ReportExecutionStatus.TimedOut"/>.
-    /// </summary>
     public string? ErrorMessage { get; private set; }
-
-    /// <summary>Number of data rows returned by the primary data source query.</summary>
     public int? RowCount { get; private set; }
 
     // ── Trigger ───────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Identity (user or system account) that initiated this execution.
-    /// </summary>
     public string TriggeredBy { get; private set; } = string.Empty;
-
-    /// <summary>
-    /// Optional correlation token supplied by the caller (e.g., a client request id).
-    /// Useful for distributed tracing.
-    /// </summary>
     public string? CorrelationId { get; private set; }
+
+    // ── Batch tracking ────────────────────────────────────────────────────────
+
+    /// <summary>Shared id for all executions in the same batch. <see langword="null"/> for non-batch executions.</summary>
+    public Guid? BatchExecutionId { get; private set; }
+
+    /// <summary>Id of the parent execution record. <see langword="null"/> for the parent itself.</summary>
+    public Guid? ParentExecutionId { get; private set; }
+
+    /// <summary>Zero-based item index within the batch. <see langword="null"/> for the parent.</summary>
+    public int? BatchItemIndex { get; private set; }
+
+    /// <summary>Render mode used for this execution. <see langword="null"/> for non-batch executions.</summary>
+    public RenderMode? RenderMode { get; private set; }
+
+    /// <summary>Resolved output file name for this item.</summary>
+    public string? OutputFileName { get; private set; }
 
     // ── Output files ─────────────────────────────────────────────────────────
 
     private readonly List<ReportOutputFile> _outputFiles = [];
-
-    /// <summary>Files rendered by the engine for this execution run.</summary>
     public IReadOnlyList<ReportOutputFile> OutputFiles => _outputFiles.AsReadOnly();
 
     // ── Audit ─────────────────────────────────────────────────────────────────
 
-    /// <inheritdoc/>
     public DateTimeOffset CreatedAt { get; private set; }
-
-    /// <inheritdoc/>
     public string CreatedBy { get; private set; } = string.Empty;
-
-    /// <inheritdoc/>
     public DateTimeOffset? ModifiedAt { get; private set; }
-
-    /// <inheritdoc/>
     public string? ModifiedBy { get; private set; }
 
     // ── ORM constructor ───────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Private parameterless constructor required by EF Core.
-    /// Do not use directly; use <see cref="Queue"/> instead.
-    /// </summary>
     private ReportExecution() { }
 
-    // ── Factory ───────────────────────────────────────────────────────────────
+    // ── Factories ─────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Creates a new <see cref="ReportExecution"/> in <see cref="ReportExecutionStatus.Queued"/> state.
@@ -158,12 +103,13 @@ public sealed class ReportExecution : IAuditableEntity
     /// <param name="reportDefinitionId">Reference to the report definition being executed.</param>
     /// <param name="reportName">Snapshot of the report name at queue time (non-empty).</param>
     /// <param name="parametersJson">JSON-serialized parameter values (non-empty; use <c>{}</c> for no params).</param>
-    /// <param name="requestedFormats">At least one output format must be requested.</param>
+    /// <param name="requestedFormats">At least one output format must be requested; all values must be defined enum members.</param>
     /// <param name="triggeredBy">Identity initiating the execution (non-empty).</param>
+    /// <param name="now">Current UTC timestamp supplied by the caller — not read from the system clock.</param>
     /// <param name="correlationId">Optional distributed-trace correlation token.</param>
     /// <returns>A new <see cref="ReportExecution"/> in Queued status.</returns>
     /// <exception cref="ReportingDomainException">
-    /// Thrown when <paramref name="requestedFormats"/> is empty or contains undefined values.
+    /// Thrown when <paramref name="requestedFormats"/> is empty or contains undefined enum values.
     /// </exception>
     public static ReportExecution Queue(
         Guid reportDefinitionId,
@@ -171,6 +117,7 @@ public sealed class ReportExecution : IAuditableEntity
         string parametersJson,
         IEnumerable<ReportOutputFormat> requestedFormats,
         string triggeredBy,
+        DateTimeOffset now,
         string? correlationId = null)
     {
         Guard.NotNullOrWhiteSpace(reportName, nameof(reportName));
@@ -189,23 +136,91 @@ public sealed class ReportExecution : IAuditableEntity
             Guard.DefinedEnum(format, nameof(requestedFormats));
         }
 
-        DateTimeOffset now = DateTimeOffset.UtcNow;
-
         ReportExecution execution = new()
         {
-            Id = Guid.NewGuid(),
+            Id                 = Guid.NewGuid(),
             ReportDefinitionId = reportDefinitionId,
-            ReportName = reportName,
-            ParametersJson = parametersJson,
-            Status = ReportExecutionStatus.Queued,
-            TriggeredBy = triggeredBy,
-            CorrelationId = correlationId,
-            CreatedAt = now,
-            CreatedBy = triggeredBy,
+            ReportName         = reportName,
+            ParametersJson     = parametersJson,
+            Status             = ReportExecutionStatus.Queued,
+            TriggeredBy        = triggeredBy,
+            CorrelationId      = correlationId,
+            CreatedAt          = now,
+            CreatedBy          = triggeredBy,
         };
 
         execution._requestedFormats.AddRange(formats);
+        return execution;
+    }
 
+    /// <summary>
+    /// Creates a new <see cref="ReportExecution"/> in <see cref="ReportExecutionStatus.Queued"/> state
+    /// as part of a batch render request.
+    /// </summary>
+    /// <param name="reportDefinitionId">Reference to the report definition being executed.</param>
+    /// <param name="reportName">Snapshot of the report name at queue time.</param>
+    /// <param name="parametersJson">JSON-serialized parameter values for this batch item.</param>
+    /// <param name="requestedFormats">At least one output format must be requested; all values must be defined enum members.</param>
+    /// <param name="triggeredBy">Identity initiating the execution.</param>
+    /// <param name="now">Current UTC timestamp supplied by the caller — not read from the system clock.</param>
+    /// <param name="renderMode">Render mode of the batch; must be a defined <see cref="Enums.RenderMode"/> value.</param>
+    /// <param name="batchExecutionId">Shared id for all executions in the batch.</param>
+    /// <param name="parentExecutionId">Id of the parent execution; <see langword="null"/> when this is the parent.</param>
+    /// <param name="batchItemIndex">Zero-based index of this item; <see langword="null"/> for the parent execution.</param>
+    /// <param name="outputFileName">Resolved output file name for this item.</param>
+    /// <exception cref="ReportingDomainException">
+    /// Thrown when <paramref name="renderMode"/> or any value in <paramref name="requestedFormats"/>
+    /// is not a defined enum member, or when <paramref name="requestedFormats"/> is empty.
+    /// </exception>
+    public static ReportExecution QueueBatch(
+        Guid reportDefinitionId,
+        string reportName,
+        string parametersJson,
+        IEnumerable<ReportOutputFormat> requestedFormats,
+        string triggeredBy,
+        DateTimeOffset now,
+        RenderMode renderMode,
+        Guid batchExecutionId,
+        Guid? parentExecutionId = null,
+        int? batchItemIndex = null,
+        string? outputFileName = null)
+    {
+        Guard.NotNullOrWhiteSpace(reportName, nameof(reportName));
+        Guard.NotNullOrWhiteSpace(parametersJson, nameof(parametersJson));
+        Guard.NotNullOrWhiteSpace(triggeredBy, nameof(triggeredBy));
+
+        List<ReportOutputFormat> formats = [.. requestedFormats];
+
+        if (formats.Count == 0)
+        {
+            throw new ReportingDomainException("At least one output format must be requested.");
+        }
+
+        Guard.DefinedEnum(renderMode, nameof(renderMode));
+
+        foreach (ReportOutputFormat format in formats)
+        {
+            Guard.DefinedEnum(format, nameof(requestedFormats));
+        }
+
+        ReportExecution execution = new()
+        {
+            Id                 = Guid.NewGuid(),
+            ReportDefinitionId = reportDefinitionId,
+            ReportName         = reportName,
+            ParametersJson     = parametersJson,
+            Status             = ReportExecutionStatus.Queued,
+            TriggeredBy        = triggeredBy,
+            RenderMode         = renderMode,
+            BatchExecutionId   = batchExecutionId,
+            ParentExecutionId  = parentExecutionId,
+            BatchItemIndex     = batchItemIndex,
+            OutputFileName     = outputFileName,
+            CreatedAt          = now,
+            CreatedBy          = triggeredBy,
+        };
+
+        execution._requestedFormats.AddRange(formats);
         return execution;
     }
 
@@ -215,30 +230,28 @@ public sealed class ReportExecution : IAuditableEntity
     /// Marks the execution as actively running.
     /// Valid only from <see cref="ReportExecutionStatus.Queued"/>.
     /// </summary>
-    /// <exception cref="ReportingDomainException">Thrown on an invalid transition.</exception>
-    public void Start()
+    /// <param name="now">Current UTC timestamp supplied by the caller.</param>
+    public void Start(DateTimeOffset now)
     {
         EnsureTransition(ReportExecutionStatus.Queued, ReportExecutionStatus.Running);
-
-        Status = ReportExecutionStatus.Running;
-        StartedAt = DateTimeOffset.UtcNow;
-        Touch(TriggeredBy);
+        Status    = ReportExecutionStatus.Running;
+        StartedAt = now;
+        Touch(TriggeredBy, now);
     }
 
     /// <summary>
     /// Marks the execution as successfully completed.
     /// Valid only from <see cref="ReportExecutionStatus.Running"/>.
     /// </summary>
+    /// <param name="now">Current UTC timestamp supplied by the caller.</param>
     /// <param name="rowCount">Number of data rows returned by the primary data source.</param>
-    /// <exception cref="ReportingDomainException">Thrown on an invalid transition.</exception>
-    public void Complete(int? rowCount = null)
+    public void Complete(DateTimeOffset now, int? rowCount = null)
     {
         EnsureTransition(ReportExecutionStatus.Running, ReportExecutionStatus.Completed);
-
-        Status = ReportExecutionStatus.Completed;
+        Status   = ReportExecutionStatus.Completed;
         RowCount = rowCount;
-        MarkTerminal();
-        Touch(TriggeredBy);
+        MarkTerminal(now);
+        Touch(TriggeredBy, now);
     }
 
     /// <summary>
@@ -246,33 +259,31 @@ public sealed class ReportExecution : IAuditableEntity
     /// Valid only from <see cref="ReportExecutionStatus.Running"/>.
     /// </summary>
     /// <param name="errorMessage">Human-readable error detail (non-empty).</param>
-    /// <exception cref="ReportingDomainException">Thrown on an invalid transition.</exception>
-    public void Fail(string errorMessage)
+    /// <param name="now">Current UTC timestamp supplied by the caller.</param>
+    public void Fail(string errorMessage, DateTimeOffset now)
     {
         Guard.NotNullOrWhiteSpace(errorMessage, nameof(errorMessage));
         EnsureTransition(ReportExecutionStatus.Running, ReportExecutionStatus.Failed);
-
-        Status = ReportExecutionStatus.Failed;
+        Status       = ReportExecutionStatus.Failed;
         ErrorMessage = errorMessage;
-        MarkTerminal();
-        Touch(TriggeredBy);
+        MarkTerminal(now);
+        Touch(TriggeredBy, now);
     }
 
     /// <summary>
     /// Marks the execution as timed out.
     /// Valid only from <see cref="ReportExecutionStatus.Running"/>.
     /// </summary>
-    /// <param name="errorMessage">Optional context describing the timeout (non-empty).</param>
-    /// <exception cref="ReportingDomainException">Thrown on an invalid transition.</exception>
-    public void TimeOut(string errorMessage)
+    /// <param name="errorMessage">Context describing the timeout (non-empty).</param>
+    /// <param name="now">Current UTC timestamp supplied by the caller.</param>
+    public void TimeOut(string errorMessage, DateTimeOffset now)
     {
         Guard.NotNullOrWhiteSpace(errorMessage, nameof(errorMessage));
         EnsureTransition(ReportExecutionStatus.Running, ReportExecutionStatus.TimedOut);
-
-        Status = ReportExecutionStatus.TimedOut;
+        Status       = ReportExecutionStatus.TimedOut;
         ErrorMessage = errorMessage;
-        MarkTerminal();
-        Touch(TriggeredBy);
+        MarkTerminal(now);
+        Touch(TriggeredBy, now);
     }
 
     /// <summary>
@@ -280,8 +291,8 @@ public sealed class ReportExecution : IAuditableEntity
     /// Valid from <see cref="ReportExecutionStatus.Queued"/> or <see cref="ReportExecutionStatus.Running"/>.
     /// </summary>
     /// <param name="cancelledBy">Identity requesting the cancellation (non-empty).</param>
-    /// <exception cref="ReportingDomainException">Thrown when the execution is already in a terminal state.</exception>
-    public void Cancel(string cancelledBy)
+    /// <param name="now">Current UTC timestamp supplied by the caller.</param>
+    public void Cancel(string cancelledBy, DateTimeOffset now)
     {
         Guard.NotNullOrWhiteSpace(cancelledBy, nameof(cancelledBy));
 
@@ -293,22 +304,22 @@ public sealed class ReportExecution : IAuditableEntity
         }
 
         Status = ReportExecutionStatus.Cancelled;
-        MarkTerminal();
-        Touch(cancelledBy);
+        MarkTerminal(now);
+        Touch(cancelledBy, now);
     }
 
     // ── Output file management ────────────────────────────────────────────────
 
     /// <summary>
     /// Records a rendered output file on this execution.
-    /// Valid only when <see cref="Status"/> is <see cref="ReportExecutionStatus.Running"/>
-    /// or <see cref="ReportExecutionStatus.Completed"/>.
+    /// Valid only when <see cref="Status"/> is Running or Completed.
     /// </summary>
     /// <param name="outputFormat">Render format of the file.</param>
     /// <param name="fileName">Original file name with extension.</param>
     /// <param name="storagePath">Infrastructure storage key or path.</param>
     /// <param name="contentType">MIME type.</param>
     /// <param name="fileSizeBytes">File size in bytes.</param>
+    /// <param name="now">Current UTC timestamp supplied by the caller.</param>
     /// <returns>The newly created <see cref="ReportOutputFile"/>.</returns>
     /// <exception cref="ReportingDomainException">Thrown when called in an invalid status.</exception>
     public ReportOutputFile AddOutputFile(
@@ -316,7 +327,8 @@ public sealed class ReportExecution : IAuditableEntity
         string fileName,
         string storagePath,
         string contentType,
-        long fileSizeBytes)
+        long fileSizeBytes,
+        DateTimeOffset now)
     {
         if (Status is not (ReportExecutionStatus.Running or ReportExecutionStatus.Completed))
         {
@@ -325,10 +337,10 @@ public sealed class ReportExecution : IAuditableEntity
         }
 
         ReportOutputFile file = ReportOutputFile.Create(
-            Id, outputFormat, fileName, storagePath, contentType, fileSizeBytes);
+            Id, outputFormat, fileName, storagePath, contentType, fileSizeBytes, now);
 
         _outputFiles.Add(file);
-        Touch(TriggeredBy);
+        Touch(TriggeredBy, now);
 
         return file;
     }
@@ -344,18 +356,17 @@ public sealed class ReportExecution : IAuditableEntity
         }
     }
 
-    private void MarkTerminal()
+    private void MarkTerminal(DateTimeOffset now)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
         CompletedAt = now;
-        DurationMs = StartedAt.HasValue
+        DurationMs  = StartedAt.HasValue
             ? (long)(now - StartedAt.Value).TotalMilliseconds
             : null;
     }
 
-    private void Touch(string actor)
+    private void Touch(string actor, DateTimeOffset now)
     {
-        ModifiedAt = DateTimeOffset.UtcNow;
+        ModifiedAt = now;
         ModifiedBy = actor;
     }
 }

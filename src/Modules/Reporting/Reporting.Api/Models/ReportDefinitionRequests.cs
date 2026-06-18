@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 using Reporting.Domain.Enums;
 
 namespace Reporting.Api.Models;
@@ -73,3 +76,41 @@ public sealed record RenderReportRequest(
     string? ParametersJson = "{}",
     string? TriggeredBy = null);
 
+/// <summary>
+/// Request body for POST /api/v1/reports/{reportId}/render.
+/// <para>
+/// <c>parametersJsonItems</c> is an ordered array of parameter objects, one per logical document.
+/// Each element is a JSON object (e.g. <c>{"invoiceNo":"INV-001"}</c>).
+/// </para>
+/// <para>Example — Single:</para>
+/// <code>{ "renderMode": "Single", "parametersJsonItems": [{"invoiceNo":"INV-001"}] }</code>
+/// <para>Example — MergePdf:</para>
+/// <code>{ "renderMode": "MergePdf", "parametersJsonItems": [{"invoiceNo":"INV-001"},{"invoiceNo":"INV-002"}] }</code>
+/// <para>Example — ZipPdf:</para>
+/// <code>{ "renderMode": "ZipPdf", "parametersJsonItems": [...], "continueOnError": true }</code>
+/// <para>Example — PreviewHtml:</para>
+/// <code>{ "renderMode": "PreviewHtml", "parametersJsonItems": [{"invoiceNo":"INV-001"}] }</code>
+/// </summary>
+public sealed record RenderBatchRequest(
+    [property: JsonPropertyName("renderMode")]
+    RenderMode RenderMode,
+    [property: JsonPropertyName("parametersJsonItems")]
+    IReadOnlyList<JsonElement>? ParametersJsonItems = null,
+    [property: JsonPropertyName("outputFileNamePattern")]
+    string? OutputFileNamePattern = null,
+    [property: JsonPropertyName("continueOnError")]
+    bool ContinueOnError = false,
+    [property: JsonPropertyName("triggeredBy")]
+    string? TriggeredBy = null)
+{
+    /// <summary>
+    /// Converts each <see cref="JsonElement"/> item to a raw JSON string for downstream processing.
+    /// Returns an empty collection when <see cref="ParametersJsonItems"/> is null.
+    /// </summary>
+    public IReadOnlyList<string> ParametersJsonStrings =>
+        ParametersJsonItems is null
+            ? []
+            : ParametersJsonItems
+                .Select(e => e.ValueKind == JsonValueKind.Undefined ? "{}" : e.GetRawText())
+                .ToList();
+}

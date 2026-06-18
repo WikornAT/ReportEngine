@@ -29,7 +29,11 @@ public partial class InitialDB : Migration
                 DurationMs = table.Column<long>(type: "bigint", nullable: true),
                 ErrorMessage = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                 OutputSizeBytes = table.Column<int>(type: "integer", nullable: true),
-                TriggeredBy = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
+                TriggeredBy = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                ParametersJson = table.Column<string>(type: "jsonb", nullable: true),
+                DataSourceExecutionMs = table.Column<long>(type: "bigint", nullable: true),
+                TemplateBindingMs = table.Column<long>(type: "bigint", nullable: true),
+                RenderMs = table.Column<long>(type: "bigint", nullable: true)
             },
             constraints: table =>
             {
@@ -79,6 +83,11 @@ public partial class InitialDB : Migration
                 RowCount = table.Column<int>(type: "integer", nullable: true),
                 TriggeredBy = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                 CorrelationId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                BatchExecutionId = table.Column<Guid>(type: "uuid", nullable: true),
+                ParentExecutionId = table.Column<Guid>(type: "uuid", nullable: true),
+                BatchItemIndex = table.Column<int>(type: "integer", nullable: true),
+                RenderMode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                OutputFileName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                 CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                 CreatedBy = table.Column<string>(type: "text", nullable: false),
                 ModifiedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
@@ -101,7 +110,9 @@ public partial class InitialDB : Migration
                 DataSourceType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                 ConnectionStringName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                 QueryText = table.Column<string>(type: "text", nullable: false),
-                SortOrder = table.Column<int>(type: "integer", nullable: false)
+                SortOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                TimeoutSeconds = table.Column<int>(type: "integer", nullable: true),
+                IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
             },
             constraints: table =>
             {
@@ -128,6 +139,7 @@ public partial class InitialDB : Migration
                 ParameterType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                 IsRequired = table.Column<bool>(type: "boolean", nullable: false),
                 DefaultValue = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                ValidationRuleJson = table.Column<string>(type: "jsonb", nullable: true),
                 SortOrder = table.Column<int>(type: "integer", nullable: false),
                 IsVisible = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
             },
@@ -169,6 +181,31 @@ public partial class InitialDB : Migration
                     onDelete: ReferentialAction.Cascade);
             });
 
+        migrationBuilder.CreateTable(
+            name: "report_data_source_parameters",
+            schema: "reporting",
+            columns: table => new
+            {
+                Id = table.Column<Guid>(type: "uuid", nullable: false),
+                ReportDataSourceId = table.Column<Guid>(type: "uuid", nullable: false),
+                SourceParameterName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                ReportParameterName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                DbType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                IsRequired = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                DefaultValue = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("PK_report_data_source_parameters", x => x.Id);
+                table.ForeignKey(
+                    name: "FK_report_data_source_parameters_report_data_sources_ReportDat~",
+                    column: x => x.ReportDataSourceId,
+                    principalSchema: "reporting",
+                    principalTable: "report_data_sources",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Cascade);
+            });
+
         migrationBuilder.CreateIndex(
             name: "IX_render_logs_ReportDefinitionId",
             schema: "reporting",
@@ -180,6 +217,13 @@ public partial class InitialDB : Migration
             schema: "reporting",
             table: "render_logs",
             column: "StartedAt");
+
+        migrationBuilder.CreateIndex(
+            name: "IX_report_data_source_parameters_ReportDataSourceId_SourcePara~",
+            schema: "reporting",
+            table: "report_data_source_parameters",
+            columns: new[] { "ReportDataSourceId", "SourceParameterName" },
+            unique: true);
 
         migrationBuilder.CreateIndex(
             name: "IX_report_data_sources_ReportDefinitionId_Name",
@@ -194,6 +238,12 @@ public partial class InitialDB : Migration
             table: "report_definitions",
             columns: new[] { "Category", "Name" },
             unique: true);
+
+        migrationBuilder.CreateIndex(
+            name: "IX_report_executions_BatchExecutionId",
+            schema: "reporting",
+            table: "report_executions",
+            column: "BatchExecutionId");
 
         migrationBuilder.CreateIndex(
             name: "IX_report_executions_CreatedAt",
@@ -241,7 +291,7 @@ public partial class InitialDB : Migration
             schema: "reporting");
 
         migrationBuilder.DropTable(
-            name: "report_data_sources",
+            name: "report_data_source_parameters",
             schema: "reporting");
 
         migrationBuilder.DropTable(
@@ -250,6 +300,10 @@ public partial class InitialDB : Migration
 
         migrationBuilder.DropTable(
             name: "report_parameters",
+            schema: "reporting");
+
+        migrationBuilder.DropTable(
+            name: "report_data_sources",
             schema: "reporting");
 
         migrationBuilder.DropTable(
