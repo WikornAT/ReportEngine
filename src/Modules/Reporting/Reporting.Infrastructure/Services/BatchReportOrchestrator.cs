@@ -104,7 +104,7 @@ internal sealed class BatchReportOrchestrator : IBatchReportOrchestrator
         {
             BatchRenderResult result = mode switch
             {
-                RenderMode.Single      => await RenderSingleAsync(reportDefinitionId, reportName, parametersJsonItems, batchExecutionId, effectivePattern, triggeredBy, parentExecution, cancellationToken),
+                RenderMode.SingleFile  => await RenderSingleAsync(reportDefinitionId, reportName, parametersJsonItems, batchExecutionId, effectivePattern, triggeredBy, parentExecution, cancellationToken),
                 RenderMode.MergePdf    => await RenderMergedAsync(reportDefinitionId, reportName, parametersJsonItems, batchExecutionId, effectivePattern, triggeredBy, parentExecution, ReportOutputFormat.Pdf, cancellationToken),
                 RenderMode.PreviewHtml => await RenderMergedAsync(reportDefinitionId, reportName, parametersJsonItems, batchExecutionId, effectivePattern, triggeredBy, parentExecution, ReportOutputFormat.Html, cancellationToken),
                 RenderMode.ZipPdf      => await RenderZipAsync(reportDefinitionId, reportName, parametersJsonItems, batchExecutionId, effectivePattern, continueOnError, triggeredBy, parentExecution, cancellationToken),
@@ -138,7 +138,7 @@ internal sealed class BatchReportOrchestrator : IBatchReportOrchestrator
         string outputFileName = ResolveFileName(pattern, reportName, 0, batchExecutionId, "pdf");
 
         ReportExecution childExecution = CreateAndStartExecution(
-            reportDefinitionId, reportName, parametersJsonItems[0], RenderMode.Single,
+            reportDefinitionId, reportName, parametersJsonItems[0], RenderMode.SingleFile,
             batchExecutionId, parentExecution.Id, 0, outputFileName, triggeredBy,
             ReportOutputFormat.Pdf, now: _dateTime.UtcNow);
 
@@ -167,7 +167,7 @@ internal sealed class BatchReportOrchestrator : IBatchReportOrchestrator
             var item = new BatchItemResult(0, true, null, durationMs, outputFileName);
 
             return new BatchRenderResult(
-                RenderMode.Single,
+                RenderMode.SingleFile,
                 rendered.Content,
                 "application/pdf",
                 outputFileName,

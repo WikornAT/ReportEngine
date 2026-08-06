@@ -18,7 +18,7 @@ internal sealed class RenderBatchReportCommandValidator : AbstractValidator<Rend
             .NotEmpty().WithMessage("Report definition id is required.");
 
         RuleFor(x => x.RenderMode)
-            .IsInEnum().WithMessage("RenderMode must be a valid value (Single, MergePdf, ZipPdf, PreviewHtml).");
+            .IsInEnum().WithMessage("RenderMode must be a valid value (SingleFile, MergePdf, ZipPdf, PreviewHtml).");
 
         RuleFor(x => x.ParametersJsonItems)
             .NotEmpty().WithMessage("At least one parameter object must be supplied.");
@@ -30,8 +30,8 @@ internal sealed class RenderBatchReportCommandValidator : AbstractValidator<Rend
 
         RuleFor(x => x.ParametersJsonItems)
             .Must(items => items.Count == 1)
-            .WithMessage("Single mode requires exactly one parameter object.")
-            .When(x => x.RenderMode == RenderMode.Single && x.ParametersJsonItems.Count > 0);
+            .WithMessage("Single file mode requires exactly one parameter object.")
+            .When(x => x.RenderMode == RenderMode.SingleFile && x.ParametersJsonItems.Count > 0);
 
         RuleFor(x => x.ContinueOnError)
             .Must(v => !v)

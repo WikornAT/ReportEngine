@@ -24,7 +24,7 @@ namespace Reporting.Application.Features.ReportDefinitions.RenderBatch;
 /// <param name="ContinueOnError">
 /// When <see langword="true"/>, failed items are skipped for
 /// <see cref="RenderMode.ZipPdf"/> and <see cref="RenderMode.PreviewHtml"/>.
-/// Has no effect for <see cref="RenderMode.Single"/> and <see cref="RenderMode.MergePdf"/>.
+/// Has no effect for <see cref="RenderMode.SingleFile"/> and <see cref="RenderMode.MergePdf"/>.
 /// </param>
 /// <param name="TriggeredBy">Identity of the caller for audit logs.</param>
 public sealed record RenderBatchReportCommand(
