@@ -45,11 +45,14 @@ public static class DependencyInjection
 
         services.AddScoped<IReportQueryExecutor, PostgreSqlReportQueryExecutor>();
         services.AddScoped<IReportRenderer, HtmlReportRenderer>();
-        services.AddScoped<IReportOutputStorage, NotImplementedReportStorageService>();
+        services.AddScoped<IReportOutputStorage, LocalFileReportOutputStorage>();
+        services.AddScoped<IReportScheduleProvider, DbReportScheduleProvider>();
         services.AddSingleton<IHtmlToPdfRenderer, PlaywrightHtmlToPdfRenderer>();
         services.AddScoped<ITemplateBindingEngine, ScribanTemplateBindingEngine>();
         services.Configure<HtmlRendererOptions>(
             configuration.GetSection(HtmlRendererOptions.SectionName));
+        services.Configure<ReportOutputStorageOptions>(
+            configuration.GetSection(ReportOutputStorageOptions.SectionName));
 
         services.AddScoped<ITemplateVerifier, TemplateVerifier>();
 

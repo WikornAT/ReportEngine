@@ -4,6 +4,7 @@ using Reporting.Application.Contracts;
 using Reporting.Domain.RenderLogs;
 using Reporting.Domain.ReportDefinitions;
 using Reporting.Domain.ReportExecutions;
+using Reporting.Domain.ReportSchedules;
 using Reporting.Infrastructure.Persistence.Configurations;
 
 namespace Reporting.Infrastructure.Persistence;
@@ -23,6 +24,7 @@ public sealed class ReportingDbContext : DbContext, IReportingDbContext
     public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
     public DbSet<ReportExecution> ReportExecutions => Set<ReportExecution>();
     public DbSet<RenderLog> RenderLogs => Set<RenderLog>();
+    public DbSet<ScheduledReport> ScheduledReports => Set<ScheduledReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
